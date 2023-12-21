@@ -1,0 +1,325 @@
+{
+    "language": "English",
+    "filetype": "pdf",
+    "toc": [
+        [
+            1,
+            "Introduction",
+            1
+        ],
+        [
+            1,
+            "Background",
+            3
+        ],
+        [
+            2,
+            "Definition",
+            3
+        ],
+        [
+            2,
+            "RAG vs Fine-tuning",
+            3
+        ],
+        [
+            1,
+            "RAG Framework",
+            4
+        ],
+        [
+            2,
+            "Naive RAG",
+            5
+        ],
+        [
+            3,
+            "Indexing",
+            5
+        ],
+        [
+            3,
+            "Retrieve",
+            6
+        ],
+        [
+            3,
+            "Generation",
+            6
+        ],
+        [
+            3,
+            "Drawbacks in Naive RAG",
+            6
+        ],
+        [
+            2,
+            "Advanced RAG",
+            6
+        ],
+        [
+            3,
+            "Pre-Retrieval Process",
+            6
+        ],
+        [
+            3,
+            "Post-Retrieval Process",
+            7
+        ],
+        [
+            3,
+            "RAG Pipeline Optimization",
+            8
+        ],
+        [
+            3,
+            "Modular RAG",
+            8
+        ],
+        [
+            3,
+            "New Pattern",
+            9
+        ],
+        [
+            1,
+            "Retriever",
+            10
+        ],
+        [
+            2,
+            "How to acquire accurate semantic representations?",
+            10
+        ],
+        [
+            3,
+            "Chunk optimization",
+            10
+        ],
+        [
+            3,
+            "Fine-tuning Embedding Models ",
+            10
+        ],
+        [
+            2,
+            "How to Match the Semantic Space of Queries and Documents ",
+            11
+        ],
+        [
+            3,
+            "Query Rewrite",
+            11
+        ],
+        [
+            3,
+            "Embedding Transformation",
+            11
+        ],
+        [
+            2,
+            "How to Aligning Retriever's Output and LLM's Preference",
+            11
+        ],
+        [
+            1,
+            "Generator",
+            12
+        ],
+        [
+            2,
+            "How Can Retrieval Results be Enhanced via Post-retrieval Processing?",
+            12
+        ],
+        [
+            3,
+            "Information Compression",
+            12
+        ],
+        [
+            3,
+            "Rerank",
+            13
+        ],
+        [
+            2,
+            "How to Optimize a Generator to Adapt Input Data?",
+            13
+        ],
+        [
+            3,
+            "General Optimization Process",
+            13
+        ],
+        [
+            3,
+            "Utilizing Contrastive Learning",
+            13
+        ],
+        [
+            1,
+            "Augmentation in RAG ",
+            14
+        ],
+        [
+            2,
+            "RAG in Augmentation Stages",
+            14
+        ],
+        [
+            3,
+            "Pre-training Stage",
+            14
+        ],
+        [
+            3,
+            "Fine-tuning Stage",
+            15
+        ],
+        [
+            3,
+            "Inference Stage",
+            16
+        ],
+        [
+            2,
+            "Augmentation Data Source",
+            16
+        ],
+        [
+            3,
+            "Augmented with Unstructured Data",
+            16
+        ],
+        [
+            3,
+            "Augmented with Structured Data",
+            17
+        ],
+        [
+            3,
+            " LLM Generated Content RAG ",
+            17
+        ],
+        [
+            2,
+            "Augmentation Process",
+            17
+        ],
+        [
+            3,
+            "Iterative Retrieval",
+            17
+        ],
+        [
+            3,
+            "Adaptive Retrieval",
+            17
+        ],
+        [
+            1,
+            "RAG Evaluation",
+            18
+        ],
+        [
+            2,
+            "Evaluation Methods",
+            18
+        ],
+        [
+            3,
+            "Independent Evaluation",
+            18
+        ],
+        [
+            3,
+            "End-to-End Evaluation",
+            18
+        ],
+        [
+            2,
+            "Key Metrics and Abilities",
+            18
+        ],
+        [
+            3,
+            "Key Metrics",
+            18
+        ],
+        [
+            3,
+            "Key abilities",
+            19
+        ],
+        [
+            2,
+            "Evaluation Frameworks",
+            19
+        ],
+        [
+            3,
+            "RAGAS",
+            19
+        ],
+        [
+            3,
+            "ARES",
+            20
+        ],
+        [
+            1,
+            "Future Prospects",
+            20
+        ],
+        [
+            2,
+            "Vertical Optimization of RAG",
+            20
+        ],
+        [
+            3,
+            "Horizontal expansion of RAG",
+            20
+        ],
+        [
+            2,
+            "Ecosystem of RAG",
+            21
+        ],
+        [
+            3,
+            "Downstream Tasks and Evaluation",
+            21
+        ],
+        [
+            3,
+            "Technical Stack",
+            21
+        ],
+        [
+            1,
+            "Conclusion",
+            21
+        ]
+    ],
+    "pages": 26,
+    "ocr_stats": {
+        "ocr_pages": 0,
+        "ocr_failed": 0,
+        "ocr_success": 0
+    },
+    "block_stats": {
+        "header_footer": 0,
+        "code": 0,
+        "table": 1,
+        "equations": {
+            "successful_ocr": 5,
+            "unsuccessful_ocr": 1,
+            "equations": 6
+        }
+    },
+    "postprocess_stats": {
+        "edit": {}
+    }
+}

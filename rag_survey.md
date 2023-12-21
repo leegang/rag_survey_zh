@@ -15,19 +15,15 @@ It also facilitates knowledge updates and the introduction of domain-specific kn
 
 RAG effectively combines the parameterized knowledge of LLMs with non-parameterized external knowledge bases, making it one of the most important methods for implementing large language models. This paper outlines the development paradigms of RAG in the era of LLMs, summarizing three paradigms: Naive RAG, Advanced RAG, and Modular RAG. It then provides a summary and organization of the three main components of RAG: retriever, generator, and augmentation methods, along with key technologies in each component. Furthermore, it discusses how to evaluate the effectiveness of RAG models, introducing two evaluation methods for RAG, emphasizing key metrics and abilities for evaluation, and presenting the latest automatic evaluation framework. Finally, potential future research directions are introduced from three aspects: vertical optimization, horizontal scalability, and the technical stack and ecosystem of RAG.1
 1
-Introduction The large language models
-(LLMs)
-are more powerful than anything we have seen in Natural Language Processing
-(NLP)
-before.
+Introduction 
 
-The GPT
-series models[Brown *et al.*, 2020, OpenAI, 2023], the LLama series models[Touvron *et al.*, 2023], Gemini[Google, 2023], and other large language models demonstrate impressive language and knowledge mastery, surpassing human benchmark levels in multiple evaluation benchmarks[Wang *et al.*, 2019, Hendrycks *et al.*, 2020, Srivastava *et al.*, 2022].
+The large language models(LLMs)are more powerful than anything we have seen in Natural Language Processing (NLP) before.
+
+The GPTseries models[Brown *et al.*, 2020, OpenAI, 2023], the LLama series models[Touvron *et al.*, 2023], Gemini[Google, 2023], and other large language models demonstrate impressive language and knowledge mastery, surpassing human benchmark levels in multiple evaluation benchmarks[Wang *et al.*, 2019, Hendrycks *et al.*, 2020, Srivastava *et al.*, 2022].
 
 However, large language models also exhibit numerous shortcomings.
 
-They often fabricate facts[Zhang *et al.*, 2023b]
-and lack knowledge when dealing with specific domains or highly specialized queries[Kandpal *et al.*, 2023]. For instance, when the information sought extends beyond the model's training data or requires the latest data, LLM may fail to provide accurate answers. This limitation poses challenges when deploying generative artificial intelligence in real-world production environments, as blindly using a black-box LLM may not suffice.
+They often fabricate facts[Zhang *et al.*, 2023b]and lack knowledge when dealing with specific domains or highly specialized queries[Kandpal *et al.*, 2023]. For instance, when the information sought extends beyond the model's training data or requires the latest data, LLM may fail to provide accurate answers. This limitation poses challenges when deploying generative artificial intelligence in real-world production environments, as blindly using a black-box LLM may not suffice.
 
 Traditionally, neural networks adapt to specific domains or proprietary information by fine-tuning models to parameterize knowledge. While this technique yields significant results, it demands substantial computational resources, incurs high costs, and requires specialized technical expertise, making it less adaptable to the evolving information landscape. Parametric knowledge and non-parametric knowledge play distinct roles. Parametric knowledge is acquired through training LLMs and stored in the neural network weights, representing the model's understanding and generalization of the training data, forming the foundation for generated responses. Non-parametric knowledge, on the other hand, resides in external knowledge sources such as vector databases, not encoded directly into the model but treated as updatable supplementary information. Non-parametric knowledge empowers LLMs to access and leverage the latest or domainspecific information, enhancing the accuracy and relevance of responses.
 
@@ -68,10 +64,10 @@ In this chapter, we will introduce the definition of RAG, as well as the compari
 Definition The meaning of RAG has expanded in tandem with technological developments. In the era of Large Language Models, the specific definition of RAG refers to the model, when answering questions or generating text, first retrieving relevant information from a vast corpus of documents. Subsequently, it utilizes this retrieved information to generate responses or text, thereby enhancing the quality of predictions. The RAG method allows developers to avoid the need for retraining the entire large model for each specific task. Instead, they can attach a knowledge base, providing additional information input to the model and improving the accuracy of its responses. RAG methods are particularly well-suited for knowledge-intensive tasks. In summary, the RAG system consists of two key stages:
 
 1. Utilizing encoding models to retrieve relevant documents based on questions, such as BM25, DPR, Col-
-BERT, and similar approaches[Robertson *et al.*, 2009, Karpukhin *et al.*, 2020, Khattab and Zaharia, 2020].
+   BERT, and similar approaches[Robertson *et al.*, 2009, Karpukhin *et al.*, 2020, Khattab and Zaharia, 2020].
 2. Generation Phase: Using the retrieved context as a condition, the system generates text.
-2.2
-RAG vs Fine-tuning In the optimization of Large Language Models (LLMs), in addition to RAG, another important optimization technique is fine-tuning.
+   2.2
+   RAG vs Fine-tuning In the optimization of Large Language Models (LLMs), in addition to RAG, another important optimization technique is fine-tuning.
 
 RAG is akin to providing a textbook to the model, allowing it to retrieve information based on specific queries. This approach is suitable for scenarios where the model needs to answer specific inquiries or address particular information retrieval tasks. However, RAG is not suitable for teaching the model to understand broad domains or learn new languages, formats, or styles.
 
@@ -91,18 +87,18 @@ compared to other methods for optimizing large language models[Shuster *et al.*,
 
 - RAG improves accuracy by associating answers with external knowledge, reducing hallucination issues in language models and making generated responses more accurate and reliable.
 - The use of retrieval techniques allows the identification of the latest information. Compared to traditional
-language models relying solely on training data, RAG maintains the timeliness and accuracy of responses.
+  language models relying solely on training data, RAG maintains the timeliness and accuracy of responses.
 - Transparency is an advantage of RAG. By citing
-sources, users can verify the accuracy of the answers, increasing trust in the model's output.
+  sources, users can verify the accuracy of the answers, increasing trust in the model's output.
 - RAG has customization capabilities. Models can be tailored to different domains by indexing relevant textual corpora, providing knowledge support for specific fields.
 - In terms of security and privacy management, RAG,
-with its built-in roles and security controls in the database, can better control data usage. In contrast, finetuned models may lack clear management of who can access which data.
+  with its built-in roles and security controls in the database, can better control data usage. In contrast, finetuned models may lack clear management of who can access which data.
 - RAG is more scalable. It can handle large-scale datasets
-without the need to update all parameters and create training sets, making it more economically efficient.
+  without the need to update all parameters and create training sets, making it more economically efficient.
 - Lastly, results produced by RAG are more trustworthy.
-RAG selects deterministic results from the latest data, while fine-tuned models may exhibit hallucinations and inaccuracies when dealing with dynamic data, lacking transparency and credibility.
-3
-RAG Framework The research paradigm of RAG is constantly evolving. This chapter primarily introduces the evolution of the RAG research paradigm. We categorize it into three types: Naive RAG, Advanced RAG, and Modular RAG. Although the early RAG was cost-effective and performed better than the native LLM, it still faced many shortcomings. The emergence
+  RAG selects deterministic results from the latest data, while fine-tuned models may exhibit hallucinations and inaccuracies when dealing with dynamic data, lacking transparency and credibility.
+  3
+  RAG Framework The research paradigm of RAG is constantly evolving. This chapter primarily introduces the evolution of the RAG research paradigm. We categorize it into three types: Naive RAG, Advanced RAG, and Modular RAG. Although the early RAG was cost-effective and performed better than the native LLM, it still faced many shortcomings. The emergence
 
 Feature Comparison
 RAG
@@ -140,8 +136,8 @@ is also summarized as a "Retrieve"-"Read" framework
 
 Indexing The pipeline for obtaining data from the source and building an index for it generally occurs in an offline state. Specifically, the construction of a data index involves the following steps:
 
-| Stores static data,                            |  requiring retraining              |  for                       |
-|------------------------------------------------|------------------------------------|----------------------------|
+| Stores static data,                            | requiring retraining               | for                        |
+| ---------------------------------------------- | ---------------------------------- | -------------------------- |
 | knowledge and data updates.                    |                                    |                            |
 | Can be applied to align the externally learned |                                    |                            |
 | knowledge                                      | from pretraining                   | with large lan-            |
@@ -195,49 +191,48 @@ Advanced RAG has made targeted improvements to overcome the deficiencies of Naiv
 ## Pre-Retrieval Process
 
 - Optimizing Data Indexing
-The purpose of optimizing data indexing is to enhance
-the quality of indexed content. Currently, there are five main strategies employed for this purpose: increasing the granularity of indexed data, optimizing index structures, adding metadata, alignment optimization, and mixed retrieval.
+  The purpose of optimizing data indexing is to enhance
+  the quality of indexed content. Currently, there are five main strategies employed for this purpose: increasing the granularity of indexed data, optimizing index structures, adding metadata, alignment optimization, and mixed retrieval.
+
 1. **Enhancing Data Granularity:** The objective of
-pre-index optimization is to improve text standardization, consistency, and ensure factual accuracy and contextual richness to guarantee the performance of the RAG system. Text standardization involves removing irrelevant information and special characters to enhance the efficiency of the retriever. In terms of consistency, the primary task is to eliminate ambiguity in entities and terms, along with eliminating duplicate or redundant information to simplify the retriever's focus. Ensuring factual accuracy is crucial, and whenever possible, the accuracy of each piece of data should be verified. Context retention, to adapt to the system's interaction context in the real world, can be achieved by adding another layer of context with domain-specific annotations, coupled with continuous updates through user feedback loops. Time sensitivity is essential contextual information, and mechanisms should be designed to refresh outdated documents. In summary, the focus of optimizing indexed data should be on clarity, context, and correctness to make the system efficient and reliable. The following introduces best practices.
+   pre-index optimization is to improve text standardization, consistency, and ensure factual accuracy and contextual richness to guarantee the performance of the RAG system. Text standardization involves removing irrelevant information and special characters to enhance the efficiency of the retriever. In terms of consistency, the primary task is to eliminate ambiguity in entities and terms, along with eliminating duplicate or redundant information to simplify the retriever's focus. Ensuring factual accuracy is crucial, and whenever possible, the accuracy of each piece of data should be verified. Context retention, to adapt to the system's interaction context in the real world, can be achieved by adding another layer of context with domain-specific annotations, coupled with continuous updates through user feedback loops. Time sensitivity is essential contextual information, and mechanisms should be designed to refresh outdated documents. In summary, the focus of optimizing indexed data should be on clarity, context, and correctness to make the system efficient and reliable. The following introduces best practices.
 2. Optimizing Index Structures:
-This can be
-achieved by adjusting the size of the chunks, altering the index paths, and incorporating graph structure information. The method of adjusting chunks (Small to Big) involves collecting as much relevant context as possible and minimizing noise. When constructing a RAG system, the chunk size is a key parameter. There are different evaluation frameworks comparing the size of individual chunks.
-LlamaIndex2 uses GPT4 to assess fidelity and rele-
-2https://www.llamaindex.ai vance, and the LLaMA[Touvron *et al.*, 2023] index has an automatic evaluation feature for different chunking methods. The method of querying across multiple index paths is closely related to previous metadata filtering and chunking methods, and may involve querying across different indexes simultaneously. A standard index can be used to query specific queries, or a standalone index can be used to search or filter based on metadata keywords, such as a specific "date" index. Introducing a graph structure involves transforming entities into nodes and their relationships into relations. This can improve accuracy by leveraging the relationships between nodes, especially for multi-hop questions. Using a graph data index can increase the relevance of the retrieval.
-
+   This can be
+   achieved by adjusting the size of the chunks, altering the index paths, and incorporating graph structure information. The method of adjusting chunks (Small to Big) involves collecting as much relevant context as possible and minimizing noise. When constructing a RAG system, the chunk size is a key parameter. There are different evaluation frameworks comparing the size of individual chunks.
+   LlamaIndex2 uses GPT4 to assess fidelity and rele-
+   2https://www.llamaindex.ai vance, and the LLaMA[Touvron *et al.*, 2023] index has an automatic evaluation feature for different chunking methods. The method of querying across multiple index paths is closely related to previous metadata filtering and chunking methods, and may involve querying across different indexes simultaneously. A standard index can be used to query specific queries, or a standalone index can be used to search or filter based on metadata keywords, such as a specific "date" index. Introducing a graph structure involves transforming entities into nodes and their relationships into relations. This can improve accuracy by leveraging the relationships between nodes, especially for multi-hop questions. Using a graph data index can increase the relevance of the retrieval.
 3. **Adding Metadata Information:** The focus here
-is to embed referenced metadata into chunks, such
-as dates and purposes used for filtering. Adding metadata like chapters and subsections of references could also be beneficial for improving retrieval. When we divide the index into numerous chunks, retrieval efficiency becomes a concern. Filtering through metadata first can enhance efficiency and relevance.
+   is to embed referenced metadata into chunks, such
+   as dates and purposes used for filtering. Adding metadata like chapters and subsections of references could also be beneficial for improving retrieval. When we divide the index into numerous chunks, retrieval efficiency becomes a concern. Filtering through metadata first can enhance efficiency and relevance.
 4. **Alignment Optimization:** This strategy primarily
-addresses alignment issues and differences between documents. The alignment concept involves introducing *hypothetical questions*, creating questions
-which are suitable to answer with each document, and embedding (or replacing) these questions with the documents. This helps address alignment problems and discrepancies between documents.
+   addresses alignment issues and differences between documents. The alignment concept involves introducing *hypothetical questions*, creating questions
+   which are suitable to answer with each document, and embedding (or replacing) these questions with the documents. This helps address alignment problems and discrepancies between documents.
 5. **Mixed Retrieval:** The advantage of this strategy
-lies in leveraging the strengths of different retrieval technologies. Intelligently combining various techniques, including keyword-based search, semantic search, and vector search, adapts to different query types and information needs, ensuring consistent retrieval of the most relevant and context-rich information. Mixed retrieval can serve as a robust complement to retrieval strategies, enhancing the overall performance of the RAG pipeline.
-Embedding
+   lies in leveraging the strengths of different retrieval technologies. Intelligently combining various techniques, including keyword-based search, semantic search, and vector search, adapts to different query types and information needs, ensuring consistent retrieval of the most relevant and context-rich information. Mixed retrieval can serve as a robust complement to retrieval strategies, enhancing the overall performance of the RAG pipeline.
+   Embedding
+
 - Fine-turning Embedding:
-Fine-tuning embedding
-models directly impacts the effectiveness of RAG. The purpose of fine-tuning is to enhance the relevance between retrieved content and query.
-The role of finetuning embedding is akin to adjusting ears before generating speech, optimizing the influence of retrieval content on the generated output. Generally, methods for fine-tuning embedding fall into the categories of adjusting embedding in domain-specific contexts and optimizing retrieval steps. Especially in professional domains dealing with evolving or rare terms, these customized embedding methods can improve retrieval relevance. The BGE[BAAI, 2023]embedding model is a
-fine-tunning and high-performance embedding model,
-such as BGE-large-EN developed by the BAAI 3. To create training data for fine-tuning the BGE model, start by using LLMs like gpt-3.5-turbo to formulate questions based on document chunks, where questions and answers (document chunks) form fine-tuning pairs for the fine-tuning process.
-
+  Fine-tuning embedding
+  models directly impacts the effectiveness of RAG. The purpose of fine-tuning is to enhance the relevance between retrieved content and query.
+  The role of finetuning embedding is akin to adjusting ears before generating speech, optimizing the influence of retrieval content on the generated output. Generally, methods for fine-tuning embedding fall into the categories of adjusting embedding in domain-specific contexts and optimizing retrieval steps. Especially in professional domains dealing with evolving or rare terms, these customized embedding methods can improve retrieval relevance. The BGE[BAAI, 2023]embedding model is a
+  fine-tunning and high-performance embedding model,
+  such as BGE-large-EN developed by the BAAI 3. To create training data for fine-tuning the BGE model, start by using LLMs like gpt-3.5-turbo to formulate questions based on document chunks, where questions and answers (document chunks) form fine-tuning pairs for the fine-tuning process.
 - Dynamic Embedding:
-Dynamic embedding adjust
-based on the context in which words appear, differing from static embedding that use a single vector for each word. For instance, in transformer models like BERT, the same word can have varied embeddings depending on surrounding words.
-Evidence indicates unexpected high cosine similarity results, especially with text lengths less than 5 tokens, in OpenAI's text-embeddingada-002 model4. Ideally, embedding should encompass
-as much context as possible to ensure "healthy" outcomes.Built upon the principles of large language models like GPT, OpenAI's embeddings-ada-02 is more sophisticated than static embedding models, capturing a certain level of context. While it excels in contextual understanding, it may not exhibit the same sensitivity to context as the latest full-size language models like GPT- 4.
-Post-Retrieval Process After retrieving valuable context from the database, merging it with the query for input into LLM poses challenges. Presenting all relevant documents to the LLM at once may exceed the context window limit. Concatenating numerous documents to form a lengthy retrieval prompt is ineffective, introducing noise and hindering the LLM's focus on crucial information. Additional processing of the retrieved content is necessary to address these issues.
-
+  Dynamic embedding adjust
+  based on the context in which words appear, differing from static embedding that use a single vector for each word. For instance, in transformer models like BERT, the same word can have varied embeddings depending on surrounding words.
+  Evidence indicates unexpected high cosine similarity results, especially with text lengths less than 5 tokens, in OpenAI's text-embeddingada-002 model4. Ideally, embedding should encompass
+  as much context as possible to ensure "healthy" outcomes.Built upon the principles of large language models like GPT, OpenAI's embeddings-ada-02 is more sophisticated than static embedding models, capturing a certain level of context. While it excels in contextual understanding, it may not exhibit the same sensitivity to context as the latest full-size language models like GPT- 4.
+  Post-Retrieval Process After retrieving valuable context from the database, merging it with the query for input into LLM poses challenges. Presenting all relevant documents to the LLM at once may exceed the context window limit. Concatenating numerous documents to form a lengthy retrieval prompt is ineffective, introducing noise and hindering the LLM's focus on crucial information. Additional processing of the retrieved content is necessary to address these issues.
 - **ReRank:** Re-ranking to relocate the most relevant information to the edges of the prompt is a straightforward idea. This concept has been implemented in frameworks such as LlamaIndex, LangChain, and HayStack
-[Blagojevi, 2023]. For instance, Diversity Ranker prioritizes reordering based on document diversity, while LostInTheMiddleRanker alternates placing the best document at the beginning and end of the context window. Simultaneously, addressing the challenge of interpreting vector-based simulated searches for semantic similarity,
-approaches like cohereAI rerank [Cohere, 2023], bgererank5, or LongLLMLingua [Jiang *et al.*, 2023a] recalculate the semantic similarity between relevant text and query.
+  [Blagojevi, 2023]. For instance, Diversity Ranker prioritizes reordering based on document diversity, while LostInTheMiddleRanker alternates placing the best document at the beginning and end of the context window. Simultaneously, addressing the challenge of interpreting vector-based simulated searches for semantic similarity,
+  approaches like cohereAI rerank [Cohere, 2023], bgererank5, or LongLLMLingua [Jiang *et al.*, 2023a] recalculate the semantic similarity between relevant text and query.
 - **Prompt Compression** Research indicates that noise
-in retrieved documents adversely affects RAG performance. In post-processing, the emphasis lies in compressing irrelevant context, highlighting pivotal paragraphs, and reducing the overall context length.
-Approaches such as Selective Context[Litman *et al.*, 2020]
-and LLMLingua [Anderson *et al.*, 2022]utilize small
-3https://huggingface.co/BAAI/bge-large-en 4https://platform.openai.com/docs/guides/embeddings
-5https://huggingface.co/BAAI/bge-reranker-large
-language models to calculate prompt mutual information or perplexity, estimating element importance.
+  in retrieved documents adversely affects RAG performance. In post-processing, the emphasis lies in compressing irrelevant context, highlighting pivotal paragraphs, and reducing the overall context length.
+  Approaches such as Selective Context[Litman *et al.*, 2020]
+  and LLMLingua [Anderson *et al.*, 2022]utilize small
+  3https://huggingface.co/BAAI/bge-large-en 4https://platform.openai.com/docs/guides/embeddings
+  5https://huggingface.co/BAAI/bge-reranker-large
+  language models to calculate prompt mutual information or perplexity, estimating element importance.
 
 However, these methods may lose key information in RAG or long-context scenarios.
 
@@ -249,91 +244,90 @@ Long Context
 RAG Pipeline Optimization The optimization of the retrieval process aims to enhance the efficiency and information quality of RAG systems, Current research primarily focuses on intelligently combining various search technologies, optimizing retrieval steps, introducing the concept of cognitive backtracking, flexibly applying diverse query strategies, and leveraging embedding similarity. These efforts collectively strive to achieve a balance between efficiency and the richness of contextual information in RAG retrieval.
 
 - **Exploring Hybrid Search:** By intelligently blending
-various techniques such as keyword-based search, semantic search, and vector search, the RAG system can leverage the strengths of each method. This approach enables the RAG system to adapt to different query types and information needs, ensuring consistent retrieval of the most relevant and context-rich information. Hybrid search serves as a robust complement to retrieval strategies, enhancing the overall performance of the RAG pipeline.
+  various techniques such as keyword-based search, semantic search, and vector search, the RAG system can leverage the strengths of each method. This approach enables the RAG system to adapt to different query types and information needs, ensuring consistent retrieval of the most relevant and context-rich information. Hybrid search serves as a robust complement to retrieval strategies, enhancing the overall performance of the RAG pipeline.
 - **Recursive Retrieval and Query Engine:**Another powerful method to optimize retrieval in the RAG system involves implementing recursive retrieval and a sophisticated query engine. Recursive retrieval entails acquiring smaller document blocks during the initial retrieval phase to capture key semantic meanings. In the later stages of this process, larger blocks with more contextual information are provided to the language model (LM). This two-step retrieval method helps strike a balance between efficiency and contextually rich responses.
 - **StepBack-prompt:** Integrated into the RAG process,
-the StepBack-prompt approach[Zheng *et al.*, 2023] encourages LLM to step back from specific instances and engage in reasoning about the underlying general concepts or principles. Experimental findings indicate a significant performance improvement in various challenging, inference-intensive tasks with the incorporation of backward prompts, showcasing its natural adaptability to RAG. The retrieval-enhancing steps can be applied in both the generation of answers to backward prompts and the final question-answering process.
+  the StepBack-prompt approach[Zheng *et al.*, 2023] encourages LLM to step back from specific instances and engage in reasoning about the underlying general concepts or principles. Experimental findings indicate a significant performance improvement in various challenging, inference-intensive tasks with the incorporation of backward prompts, showcasing its natural adaptability to RAG. The retrieval-enhancing steps can be applied in both the generation of answers to backward prompts and the final question-answering process.
 - **Subqueries:**Various query strategies can be employed in
-different scenarios, including using query engines provided by frameworks like LlamaIndex, employing tree queries, utilizing vector queries, or employing the most basic sequential querying of chunks.
+  different scenarios, including using query engines provided by frameworks like LlamaIndex, employing tree queries, utilizing vector queries, or employing the most basic sequential querying of chunks.
 - **HyDE:** This approach is grounded on the assumption
-that the generated answers may be closer in the embedding space than a direct query. Utilizing LLM, HyDE generates a hypothetical document (answer) in response to a query, embeds the document, and employs this embedding to retrieve real documents similar to the hypothetical one. In contrast to seeking embedding similarity based on the query, this method emphasizes the embedding similarity from answer to answer. However, it may not consistently yield favorable results, particularly in instances where the language model is unfamiliar with the discussed topic, potentially leading to an increased generation of error-prone instances.
-Modular RAG
-The modular RAG structure breaks away from the traditional Naive RAG framework of indexing, retrieval, and generation, offering greater diversity and flexibility in the overall process. On one hand, it integrates various methods to expand functional modules, such as incorporating a search module in similarity retrieval and applying a fine-tuning approach in the retriever[Lin *et al.*, 2023]. Additionally, specific problems have led to the emergence of restructured RAG modules [Yu *et al.*, 2022] and iterative approaches like
-[Shao *et al.*, 2023]. The modular RAG paradigm is becoming the mainstream in the RAG domain, allowing for either a serialized pipeline or an end-to-end training approach across multiple modules.The comparison between three RAG paradigms is illustrated in Fig 3.
+  that the generated answers may be closer in the embedding space than a direct query. Utilizing LLM, HyDE generates a hypothetical document (answer) in response to a query, embeds the document, and employs this embedding to retrieve real documents similar to the hypothetical one. In contrast to seeking embedding similarity based on the query, this method emphasizes the embedding similarity from answer to answer. However, it may not consistently yield favorable results, particularly in instances where the language model is unfamiliar with the discussed topic, potentially leading to an increased generation of error-prone instances.
+  Modular RAG
+  The modular RAG structure breaks away from the traditional Naive RAG framework of indexing, retrieval, and generation, offering greater diversity and flexibility in the overall process. On one hand, it integrates various methods to expand functional modules, such as incorporating a search module in similarity retrieval and applying a fine-tuning approach in the retriever[Lin *et al.*, 2023]. Additionally, specific problems have led to the emergence of restructured RAG modules [Yu *et al.*, 2022] and iterative approaches like
+  [Shao *et al.*, 2023]. The modular RAG paradigm is becoming the mainstream in the RAG domain, allowing for either a serialized pipeline or an end-to-end training approach across multiple modules.The comparison between three RAG paradigms is illustrated in Fig 3.
 
 New Modules
 
 - Search Module:
-Diverging from the similarity retrieval between queries and corpora in Naive/Advanced RAG, the search module, tailored to specific scenarios, incorporates direct searches on (additional) corpora in the process using LLM-generated code, query languages (e.g., SQL, Cypher), or other custom tools. The data sources for searching can include search engines, text data, tabular data, or knowledge
-graphs[Wang *et al.*, 2023c].
+  Diverging from the similarity retrieval between queries and corpora in Naive/Advanced RAG, the search module, tailored to specific scenarios, incorporates direct searches on (additional) corpora in the process using LLM-generated code, query languages (e.g., SQL, Cypher), or other custom tools. The data sources for searching can include search engines, text data, tabular data, or knowledge
+  graphs[Wang *et al.*, 2023c].
 - **Memory Module:** Leveraging the memory capabilities of LLM itself to guide retrieval, the principle involves finding memories most similar to the current input. Self-mem [Cheng *et al.*, 2023b]iteratively employs
-a retrieval-enhanced generator to create an unbounded memory pool, combining the "original question" and "dual question." A retrieval-enhanced generative model can use its own outputs to enhance itself, making the text closer to the data distribution in the reasoning process, with the model's own outputs rather than training
-data[Wang *et al.*, 2022a].
+  a retrieval-enhanced generator to create an unbounded memory pool, combining the "original question" and "dual question." A retrieval-enhanced generative model can use its own outputs to enhance itself, making the text closer to the data distribution in the reasoning process, with the model's own outputs rather than training
+  data[Wang *et al.*, 2022a].
 - **Extra Generation Module:** In retrieved content, redundancy and noise are common issues. Instead of directly retrieving from a data source, the Extra Generation Module leverages LLM to generate the required
-context[Yu *et al.*, 2022]. Content generated by LLM is
-more likely to contain relevant information compared to direct retrieval.
+  context[Yu *et al.*, 2022]. Content generated by LLM is
+  more likely to contain relevant information compared to direct retrieval.
 - Task
-Adaptable
-Module:
-Focused
-on
-transforming
-RAG
-to
-adapt
-to
-various
-downstream
-tasks,
-UPRISE[Cheng *et al.*, 2023a]
-automatically
-retrieves
-prompts
-for
-given
-zero-shot
-task
-inputs
-from
-a
-pre-constructed
-data
-pool,
-enhancing
-universality
-across
-tasks
-and
-models.
-PROMPTAGATOR[Dai *et al.*, 2022]utilizes
-LLM
-as a few-shot query generator and, based on the generated data, creates task-specific retrievers.
-Leveraging
-the generalization capability of LLM, PROMPTAGA- TOR enables the creation of task-specific end-to-end retrievers with just a few examples.
+  Adaptable
+  Module:
+  Focused
+  on
+  transforming
+  RAG
+  to
+  adapt
+  to
+  various
+  downstream
+  tasks,
+  UPRISE[Cheng *et al.*, 2023a]
+  automatically
+  retrieves
+  prompts
+  for
+  given
+  zero-shot
+  task
+  inputs
+  from
+  a
+  pre-constructed
+  data
+  pool,
+  enhancing
+  universality
+  across
+  tasks
+  and
+  models.
+  PROMPTAGATOR[Dai *et al.*, 2022]utilizes
+  LLM
+  as a few-shot query generator and, based on the generated data, creates task-specific retrievers.
+  Leveraging
+  the generalization capability of LLM, PROMPTAGA- TOR enables the creation of task-specific end-to-end retrievers with just a few examples.
 - **Alignment Module:** The alignment between queries
-and texts has consistently been a critical issue influencing the effectiveness of RAG. In the era of Modular RAG, researchers have discovered that adding a trainable Adapter module to the retriever can effectively mitigate alignment issues. PRCA[Yang *et al.*, 2023b] leveraged reinforcement learning to train a context adapter driven by LLM rewards, positioned between the retriever and generator.
-It optimizes the retrieved information by maximizing rewards in the reinforcement learning phase within the labeled autoregressive policy.
-AAR[Yu *et al.*, 2023b]proposed a universal plugin that learns LM preferences from known-source LLMs to assist unknown or non-co-finetuned LLMs.
-RRR[Ma *et al.*, 2023a]designed a module for rewriting
-queries based on reinforcement learning to align queries with documents in the corpus.
+  and texts has consistently been a critical issue influencing the effectiveness of RAG. In the era of Modular RAG, researchers have discovered that adding a trainable Adapter module to the retriever can effectively mitigate alignment issues. PRCA[Yang *et al.*, 2023b] leveraged reinforcement learning to train a context adapter driven by LLM rewards, positioned between the retriever and generator.
+  It optimizes the retrieved information by maximizing rewards in the reinforcement learning phase within the labeled autoregressive policy.
+  AAR[Yu *et al.*, 2023b]proposed a universal plugin that learns LM preferences from known-source LLMs to assist unknown or non-co-finetuned LLMs.
+  RRR[Ma *et al.*, 2023a]designed a module for rewriting
+  queries based on reinforcement learning to align queries with documents in the corpus.
 - **Validation Module:** In real-world scenarios, it is not
-always guaranteed that the retrieved information is reliable. Retrieving irrelevant data may lead to the occurrence of illusions in LLM. Therefore, an additional validation module can be introduced after retrieving documents to assess the relevance between the retrieved documents and the query. This enhances the robustness of RAG[Yu *et al.*, 2023a].
+  always guaranteed that the retrieved information is reliable. Retrieving irrelevant data may lead to the occurrence of illusions in LLM. Therefore, an additional validation module can be introduced after retrieving documents to assess the relevance between the retrieved documents and the query. This enhances the robustness of RAG[Yu *et al.*, 2023a].
 
 New Pattern The organizational approach of Modular RAG is flexible, allowing for the substitution or reconfiguration of modules within the RAG process based on specific problem contexts. For Naive RAG, which consists of the two modules of retrieval and generation ( referred as read or sythesis in some literature), this framework offers adaptability and abundance. Present research primarily explores two organizational paradigms, involving the addition or replacement of modules, as well as the adjustment of the organizational flow between modules.
 
 - Adding or Replacing Modules
-The strategy of adding or replacing modules entails maintaining the structure of Retrieval-Read while introducing additional modules to enhance specific functionalities.
-RRR[Ma *et al.*, 2023a] proposes the Rewrite-
-Retrieve-Read process, utilizing LLM performance as a reward in reinforcement learning for a rewritter module. This allows the rewritter to adjust retrieval queries, improving the downstream task performance of the reader. Similarly, modules can be selectively replaced in approaches like Generate-Read[Yu *et al.*, 2022], where the
-LLM generation module replaces the retrieval module.
-Recite-Read [Sun *et al.*, 2022] transforms external retrieval into retrieval from model weights, initially having LLM memorize task-relevant information and generate output for handling knowledge-intensive natural language processing tasks.
-
+  The strategy of adding or replacing modules entails maintaining the structure of Retrieval-Read while introducing additional modules to enhance specific functionalities.
+  RRR[Ma *et al.*, 2023a] proposes the Rewrite-
+  Retrieve-Read process, utilizing LLM performance as a reward in reinforcement learning for a rewritter module. This allows the rewritter to adjust retrieval queries, improving the downstream task performance of the reader. Similarly, modules can be selectively replaced in approaches like Generate-Read[Yu *et al.*, 2022], where the
+  LLM generation module replaces the retrieval module.
+  Recite-Read [Sun *et al.*, 2022] transforms external retrieval into retrieval from model weights, initially having LLM memorize task-relevant information and generate output for handling knowledge-intensive natural language processing tasks.
 - **Adjusting the Flow between Modules** In the realm of
-adjusting the flow between modules, there is an emphasis on enhancing interaction between language models
-and retrieval models. DSP[Khattab *et al.*, 2022] introduces the Demonstrate-Search-predict framework, treating the context learning system as an explicit program rather than a terminal task prompt to address knowledgeintensive tasks.
-ITER-RETGEN [Shao *et al.*, 2023]
-utilizes generated content to guide retrieval, iteratively performing "retrieval-enhanced generation" and "generation-enhanced retrieval" in a Retrieve-Read-
-Retrieve-Read flow. Self-RAG[Asai *et al.*, 2023b] follows the decide-retrieve-reflect-read process, introducing a module for active judgment. This adaptive and diverse approach allows for the dynamic organization of modules within the Modular RAG framework.
+  adjusting the flow between modules, there is an emphasis on enhancing interaction between language models
+  and retrieval models. DSP[Khattab *et al.*, 2022] introduces the Demonstrate-Search-predict framework, treating the context learning system as an explicit program rather than a terminal task prompt to address knowledgeintensive tasks.
+  ITER-RETGEN [Shao *et al.*, 2023]
+  utilizes generated content to guide retrieval, iteratively performing "retrieval-enhanced generation" and "generation-enhanced retrieval" in a Retrieve-Read-
+  Retrieve-Read flow. Self-RAG[Asai *et al.*, 2023b] follows the decide-retrieve-reflect-read process, introducing a module for active judgment. This adaptive and diverse approach allows for the dynamic organization of modules within the Modular RAG framework.
 
 ## 4 Retriever
 
@@ -387,14 +381,19 @@ In the RAG pipeline, even if we employ the above techniques to enhance the retri
 
 **LLM supervised training** Many works leverage various feedback signals from large language models to fine-tune embedding models. AAR[20] provides supervisory signals for a pre-trained retriever through an encoder-decoder architecture LM. By determining the LM's preferred documents through FiD cross-attention scores, the retriever is then fine-tuned with hard negative sampling and standard cross-entropy loss. Ultimately, the fine-tuned retriever can directly be used to enhance unseen target LMs, thereby performing better in the target task. The training loss of retriever as:
 
-$$\zeta=\sum_{q}\sum_{d^{+}\,\in\,D^{a}+}\sum_{d^{-}\,\in\,D^{-}}l\left(f\left( q,d^{+}\right),f\left(q,d^{-}\right)\right) \tag{1}$$
+$$
+\zeta=\sum_{q}\sum_{d^{+}\,\in\,D^{a}+}\sum_{d^{-}\,\in\,D^{-}}l\left(f\left( q,d^{+}\right),f\left(q,d^{-}\right)\right) \tag{1}
+$$
 
 where ${D^{a}}^{+}$ is the documents preferred by the LLM in the retrieved set and ${D^{a}}^{-}$ is not preferred. $l$ is the standard cross entropy loss. In the end,it is suggested that LLMs may have a preference for focusing on readable rather than information-rich documents
 
-REPLUG[14] uses a retriever and an LLM to calculate the probability distributions of the retrieved documents, and then performs supervised training by calculating the KL divergence. This simple and effective training method enhances the performance of the retrieval model by using an LM as the supervisory signal, eliminating the need for any 
+REPLUG[14] uses a retriever and an LLM to calculate the probability distributions of the retrieved documents, and then performs supervised training by calculating the KL divergence. This simple and effective training method enhances the performance of the retrieval model by using an LM as the supervisory signal, eliminating the need for any
 specific cross-attention mechanisms. The training loss of the retriever is as follows:
 
-$$\xi=\frac{1}{|D|}\sum_{x\in D}KL\left(P_{R}\left(d|x\right)||Q_{LM}\left(d|x,y\right)\right) \tag{2}$$
+$$
+\xi=\frac{1}{|D|}\sum_{x\in D}KL\left(P_{R}\left(d|x\right)||Q_{LM}\left(d|x,y\right)\right) \tag{2}
+$$
+
 where D is a set of input contexts, PRis the retrieval likelihood, QLM is the LM likelihood of each document.
 
 UPRISE[Cheng *et al.*, 2023a] also employs frozen large language models to fine-tune the Prompt Retriever.
@@ -424,11 +423,16 @@ Information Compression Even though the retriever can fetch relevant information
 
 PRCA [Yang *et al.*, 2023b] addressed this issue by training an information extractor. In the context extraction stage, given an input text S*input*, it can generate an output sequence C*extracted*, which represents the condensed context from the input document. The objective of the training process is to minimize the discrepancy between C*extracted* and the actual context C*truth* as much as possible. The loss function they adopted is as follows:
 
-$$minL(\theta)=-\frac{1}{N}\sum_{i=1}^{N}C_{truth}^{(i)}log(f.(S_{input}^{(i)}; \theta)) \tag{3}$$
+$$
+minL(\theta)=-\frac{1}{N}\sum_{i=1}^{N}C_{truth}^{(i)}log(f.(S_{input}^{(i)}; \theta)) \tag{3}
+$$
 
 where $f.$ is the information extractor and $\theta$ is the parameter of the extractor. RECOMP[11] similarly trains an information condenser by leveraging contrastive learning. For each training data point, there exists one positive sample and five negative samples. The encoder is trained using contrastive loss [13] during this process.The specific optimization goals are as follows:
 
-$$-log\frac{e^{sim(x_{i},p_{i})}}{sim(x_{i},p_{i})+\sum_{n_{j}\in N_{i}}e^{sim(x_ {i},p_{i})}} \tag{4}$$
+$$
+-log\frac{e^{sim(x_{i},p_{i})}}{sim(x_{i},p_{i})+\sum_{n_{j}\in N_{i}}e^{sim(x_ {i},p_{i})}} \tag{4}
+$$
+
 where xi is the training data, pi is the positive sample, and nj is the negative sample,sim(x,y) is to calculate the similarity between x and y. Another study has chosen to further streamline the quantity of documents, aiming to enhance the model's answer accuracy by reducing the number of retrieved documents. [Ma *et al.*, 2023b] proposed the "Filter-Ranker"
 paradigm, which integrates the strengths of Large Language Models (LLMs) and Small Language Models (SLMs). In this paradigm, SLMs serve as filters, while LLMs function as reordering agents. By prompting LLMs to rearrange portions of difficult samples identified by SLMs, the research results indicate significant improvements across various Information Extraction (IE) tasks.
 
@@ -477,13 +481,17 @@ When dealing with retrieval tasks that involve structured data, the work of SANT
 
 Specifically, in the training phase of the retriever, contrastive learning was adopted, with the main goal of optimizing the embedding representations of the queries and documents. The specific optimization objectives are as follows:
 
-$$\mathfrak{L}_{DR}=-log\frac{c^{sim(q,d^{+})}}{e^{f(q,d^{+})}+\sum_{d^{-}\in D^{-}}c ^{sim(q,d^{-})}} \tag{12}$$
+$$
+\mathfrak{L}_{DR}=-log\frac{c^{sim(q,d^{+})}}{e^{f(q,d^{+})}+\sum_{d^{-}\in D^{-}}c ^{sim(q,d^{-})}} \tag{12}
+$$
 
 where q and d are the query and document encoded by the encoder.$d^{-}$,$d^{+}$ represent negative samples and positive samples respectively. In the initial training stage of the generator, we utilize contrastive learning to align structured data and the corresponding document description of unstructured data. The optimization objective is as above.
 
 Moreover, in the later training stage of the generator, inspired by references [16, 17], we recognized the remarkable effectiveness of entity semantics in learning textual data representations in retrieval. Thus, we first perform entity identification in the structured data, subsequently applying a mask to the entities in the input section of the generator's training data, enabling the generator to predict these masks. The optimization objective hereafter is:
 
-$$\mathfrak{L}_{MEP}=\sum_{j=1}^{k}-logP(Y_{d}(t_{j})|X_{d}^{mask},Y_{d}(t_{1},...,j-1)) \tag{13}$$
+$$
+\mathfrak{L}_{MEP}=\sum_{j=1}^{k}-logP(Y_{d}(t_{j})|X_{d}^{mask},Y_{d}(t_{1},...,j-1)) \tag{13}
+$$
 
 where $Y_{d}(y_{j}$ denotes the j-th token in the sequence $Y_{d}$. And $Y_{d}$ = $<mask>_{1}$, $ent_{1}$,..., $<mask>_{n}$, $ent_{n}$ denotes the ground truth sequence that contains masked entities. Throughout the training process, we recover the masked entities by acquiring necessary information from the context, understand the structural semantics of textual data, and align the relevant entities in the structured data. We optimize the language model to fill the concealed spans and to better comprehend the entity semantics[21].
 
@@ -628,7 +636,6 @@ evaluation[Liu, 2023].
 Independent Evaluation Independent evaluation includes assessing the retrieval module and the generation (read/synthesis) module.
 
 1. Retrieval Module A suite of metrics that measure the effectiveness of systems (like search engines, recommendation systems, or information retrieval systems) in ranking items according to queries or tasks are commonly used to evaluate the performance of the RAG retrieval module. Examples include Hit Rate, MRR, NDCG, Precision, etc.
-
 2. Generation Module The generation module here refers to the enhanced or synthesized input formed by supplementing the retrieved documents into the query, distinct from the final answer/response generation, which is typically evaluated end-to-end. The evaluation metrics for the generation module mainly focus on context relevance, measuring the relatedness of retrieved documents to the query question.
 
 End-to-End Evaluation End-to-end evaluation assesses the final response generated by the RAG model for a given input, involving the relevance and alignment of the model-generated answers with the input query.
@@ -652,21 +659,18 @@ Additionally, the latest evaluation frameworks like RAGAS[Es *et al.*, 2023]
 and ARES[Saad-Falcon *et al.*, 2023] also involve RAG evaluation metrics. Summarizing these works, three core metrics are primarily focused on: Faithfulness of the answer, Answer Relevance, and Context Relevance.
 
 1. Faithfulness This metric emphasizes that the answers generated by the model must remain true to the given context, ensuring that the answers are consistent with the context information and do not deviate or contradict it. This aspect of evaluation is vital for addressing illusions in large models.
-
 2. Answer Relevance
-This metric stresses that the generated answers need to be directly related to the posed question.
+   This metric stresses that the generated answers need to be directly related to the posed question.
 3. Context Relevance This metric demands that the retrieved contextual information be as accurate and targeted as possible, avoiding irrelevant content. After all, processing long texts is costly for LLMs, and too much irrelevant information can reduce the efficiency of LLMs in utilizing context. The OpenAI report also mentioned "Context Recall" as a supplementary metric, measuring the model's ability to retrieve all relevant information needed to answer a question. This metric reflects the search optimization level of the RAG retrieval module. A low recall rate indicates a potential need for optimization of the search functionality, such as introducing re-ranking mechanisms or fine-tuning embeddings, to ensure more relevant content retrieval.
 
 Key abilities The work of RGB[Chen *et al.*, 2023b] analyzed the performance of different large language models in terms of four basic abilities required for RAG, including Noise Robustness, Negative Rejection, Information Integration, and Counterfactual Robustness, establishing a benchmark for retrievalaugmented generation.RGB focuses on the following four abilities:
+
 1. Noise Robustness This capability measures the model's efficiency in handling noisy documents, which are those related to the question but do not contain useful information.
-
 2. Negative Rejection When documents retrieved by the model lack the knowledge required to answer a question, the model should correctly refuse to respond. In the test setting for negative rejection, external documents contain only noise. Ideally, the LLM should issue a "lack of information" or similar refusal signal.
-
 3. Information Integration This ability assesses whether the model can integrate information from multiple documents to answer more complex questions.
-
 4. Counterfactual Robustness
-This test aims to evaluate whether the model can identify and deal with known erroneous information in documents when receiving instructions about potential risks in retrieved information. Counterfactual robustness tests include questions that the LLM can answer directly, but
-the related external documents contain factual errors.
+   This test aims to evaluate whether the model can identify and deal with known erroneous information in documents when receiving instructions about potential risks in retrieved information. Counterfactual robustness tests include questions that the LLM can answer directly, but
+   the related external documents contain factual errors.
 
 ## 7.3 Evaluation Frameworks
 
@@ -679,21 +683,21 @@ API[Es *et al.*, 2023].
 Algorithm Principles
 
 1. Assessing Answer Faithfulness: Decompose the answer
-into individual statements using an LLM and verify whether each statement is consistent with the context. Ultimately, a "Faithfulness Score" is calculated by comparing the number of supported statements to the total number of statements.
+   into individual statements using an LLM and verify whether each statement is consistent with the context. Ultimately, a "Faithfulness Score" is calculated by comparing the number of supported statements to the total number of statements.
 2. Assessing Answer Relevance: Generate potential questions using an LLM and calculate the similarity between these questions and the original question. The Answer Relevance Score is derived by calculating the average similarity of all generated questions to the original question.
 3. Assessing Context Relevance: Extract sentences directly
-relevant to the question using an LLM, and use the ratio of these sentences to the total number of sentences in the context as the Context Relevance Score.
-ARES
-ARES aims to automatically evaluate the performance of RAG systems in three aspects: Context Relevance, Answer Faithfulness, and Answer Relevance. These evaluation metrics are similar to those in RAGAS. However, RAGAS, being a newer evaluation framework based on simple handwritten prompts, has limited adaptability to new RAG evaluation settings, which is one of the significances of the ARES work. Furthermore, as demonstrated in its assessments, ARES performs significantly lower than RAGAS. ARES reduces the cost of evaluation by using a small amount of manually annotated data and synthetic data, and utilizes Predictive-Driven Reasoning (PDR) to provide statistical confidence intervals, enhancing the accuracy of evaluation[Saad-Falcon *et al.*, 2023].
+   relevant to the question using an LLM, and use the ratio of these sentences to the total number of sentences in the context as the Context Relevance Score.
+   ARES
+   ARES aims to automatically evaluate the performance of RAG systems in three aspects: Context Relevance, Answer Faithfulness, and Answer Relevance. These evaluation metrics are similar to those in RAGAS. However, RAGAS, being a newer evaluation framework based on simple handwritten prompts, has limited adaptability to new RAG evaluation settings, which is one of the significances of the ARES work. Furthermore, as demonstrated in its assessments, ARES performs significantly lower than RAGAS. ARES reduces the cost of evaluation by using a small amount of manually annotated data and synthetic data, and utilizes Predictive-Driven Reasoning (PDR) to provide statistical confidence intervals, enhancing the accuracy of evaluation[Saad-Falcon *et al.*, 2023].
 
 Algorithm Principles
 
 1. Generating Synthetic Dataset: ARES initially generates
-synthetic questions and answers from documents in the target corpus using a language model to create positive and negative samples.
+   synthetic questions and answers from documents in the target corpus using a language model to create positive and negative samples.
 2. Preparing LLM Judges:
-Next,
-ARES fine-tunes
-lightweight language models using the synthetic dataset to train them to evaluate Context Relevance, Answer Faithfulness, and Answer Relevance.
+   Next,
+   ARES fine-tunes
+   lightweight language models using the synthetic dataset to train them to evaluate Context Relevance, Answer Faithfulness, and Answer Relevance.
 3. Ranking RAG Systems Using Confidence Intervals: Finally, ARES applies these judge models to score RAG systems and combines them with a manually annotated validation set using the PPI method to generate confidence intervals, reliably estimating the performance of RAG systems.
 
 ## 8 Future Prospects
@@ -1055,31 +1059,7 @@ Christopher Potts, and Matei Zaharia. Ares: An automated evaluation framework fo
 Schick,
 Jane
 Dwivedi-Yu,
-Roberto Dess`ı, Roberta Raileanu, Maria Lomeli, Luke
-Zettlemoyer, Nicola Cancedda, and Thomas Scialom. Toolformer: Language models can teach themselves to use tools. *arXiv preprint arXiv:2302.04761*, 2023.
-[Sciavolino *et al.*, 2021] Christopher
-Sciavolino,
-Zexuan
-Zhong, Jinhyuk Lee, and Danqi Chen.
-Simple entitycentric questions challenge dense retrievers.
-arXiv
-preprint arXiv:2109.08535, 2021.
-[Shao *et al.*, 2023] Zhihong Shao, Yeyun Gong, Yelong
-Shen, Minlie Huang, Nan Duan, and Weizhu Chen. Enhancing retrieval-augmented large language models with iterative retrieval-generation synergy.
-arXiv preprint
-arXiv:2305.15294, 2023.
-[Shi *et al.*, 2023] Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon Seo, Rich James, Mike Lewis, Luke Zettlemoyer, and Wen-tau Yih.
-Replug:
-Retrievalaugmented black-box language models.
-arXiv preprint
-arXiv:2301.12652, 2023.
-[Shuster *et al.*, 2021] Kurt Shuster, Spencer Poff, Moya
-Chen, Douwe Kiela, and Jason Weston.
-Retrieval augmentation reduces hallucination in conversation.
-arXiv
-preprint arXiv:2104.07567, 2021.
-[Srivastava *et al.*, 2022] Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao, Abu Awal Md Shoeb, Abubakar Abid, Adam Fisch, Adam R Brown, Adam Santoro, Aditya
-Gupta, Adri`a Garriga-Alonso, et al. Beyond the imitation game: Quantifying and extrapolating the capabilities of language models. *arXiv preprint arXiv:2206.04615*, 2022.
+Roberto Dess `ı, Roberta Raileanu, Maria Lomeli, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom. Toolformer: Language models can teach themselves to use tools. *arXiv preprint arXiv:2302.04761*, 2023. [Sciavolino *et al.*, 2021] Christopher Sciavolino, Zexuan Zhong, Jinhyuk Lee, and Danqi Chen. Simple entitycentric questions challenge dense retrievers. arXiv preprint arXiv:2109.08535, 2021. [Shao *et al.*, 2023] Zhihong Shao, Yeyun Gong, Yelong Shen, Minlie Huang, Nan Duan, and Weizhu Chen. Enhancing retrieval-augmented large language models with iterative retrieval-generation synergy. arXiv preprint arXiv:2305.15294, 2023. [Shi *et al.*, 2023] Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon Seo, Rich James, Mike Lewis, Luke Zettlemoyer, and Wen-tau Yih. Replug: Retrievalaugmented black-box language models. arXiv preprint arXiv:2301.12652, 2023. [Shuster *et al.*, 2021] Kurt Shuster, Spencer Poff, Moya Chen, Douwe Kiela, and Jason Weston. Retrieval augmentation reduces hallucination in conversation. arXiv preprint arXiv:2104.07567, 2021. [Srivastava *et al.*, 2022] Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao, Abu Awal Md Shoeb, Abubakar Abid, Adam Fisch, Adam R Brown, Adam Santoro, Aditya Gupta, Adri`a Garriga-Alonso, et al. Beyond the imitation game: Quantifying and extrapolating the capabilities of language models. *arXiv preprint arXiv:2206.04615*, 2022.
 
 [Sun *et al.*, 2022] Zhiqing Sun, Xuezhi Wang, Yi Tay, Yiming Yang, and Denny Zhou.
 Recitation-augmented language models. *arXiv preprint arXiv:2210.01296*, 2022.

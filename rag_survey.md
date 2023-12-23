@@ -437,8 +437,7 @@ proposes extractive and generative compressors, which generate summaries by sele
 
 Another core component in RAG is the generator, responsible for transforming retrieved information into natural and fluent text. Its design is inspired by traditional language models, but in comparison to conventional generative models, RAG's generator enhances accuracy and relevance by leveraging the retrieved information. In RAG, the generator's input includes not only traditional contextual information but also relevant text segments obtained through the retriever. This allows the generator to better comprehend the context behind the question and produce responses that are more information-rich. Furthermore, the generator is guided by the retrieved text to ensure consistency between the generated content and the retrieved information. It is the diversity of input data that has led to a series of targeted efforts during the generation phase, all aimed at better adapting the large model to the input data from queries and documents. We will delve into the introduction of the generator through aspects of post-retrieval processing and fine-tuning.
 
-5.1
-How Can Retrieval Results be Enhanced via Post-retrieval Processing?
+5.1 How Can Retrieval Results be Enhanced via Post-retrieval Processing?
 
 In terms of untuned large language models, most studies rely on well-recognized large language models like GPT-
 4[OpenAI, 2023] to leverage their robust internal knowledge for the comprehensive retrieval of document knowledge. However, inherent issues of these large models, such as context length restrictions and vulnerability to redundant information, persist. To mitigate these issues, some research has made efforts in post-retrieval processing. Post-retrieval processing refers to the process of further treating, filtering, or optimizing the relevant information retrieved by the retriever from a large document database. Its primary purpose is to enhance the quality of retrieval results to better meet user needs or for subsequent tasks. It can be understood as a process of reprocessing the documents obtained in the retrieval phase. The operations of post-retrieval processing usually involve information compression and result rerank.
@@ -488,14 +487,15 @@ For the Dual-Encoder, the system establishes two independent encoders, each resp
 [Vaswani *et al.*, 2017] as the building block for both architectures and optimize Gξ Negative Log-Likelihood (NLL) loss.
 
 Hx = SourceEncoder(x)Hm = *MemoryEncoder*(x) (8) hi = Decoder(CrossAttn(Hx, Hm)*, y < i*) (9) Lnll = − t=1 logPGξ(yt|*x, m, y < t*) (10) |y| �
-Utilizing Contrastive Learning In the phase of preparing training data, usually generated are pairs of interactions between inputs and outputs.
+Utilizing Contrastive 
+Learning In the phase of preparing training data, usually generated are pairs of interactions between inputs and outputs.
 
 Under this circumstance, the model can only access a unique real output which might induce the "exposure bias" problem [Ranzato *et al.*, 2015]: during the training phase, the model only exposes to a single true feedback without accessing any other generated tokens.
 
-This can impair the model's performance in application as it might excessively fit to specific feedback in the training data without effectively generalizing to other scenarios. Therefore, a graph-text contrastive learning method has been proposed by SURGE
-[Kang *et al.*, 2023]. For any given pair of interactions between inputs and outputs, the objective of this contrastive learning approach can be defined as follows:
+This can impair the model's performance in application as it might excessively fit to specific feedback in the training data without effectively generalizing to other scenarios. Therefore, a graph-text contrastive learning method has been proposed by SURGE[Kang *et al.*, 2023]. For any given pair of interactions between inputs and outputs, the objective of this contrastive learning approach can be defined as follows:
 
-L*cont* = 1 2log esim(ζ(z),ξ(h))/ι 2log esim(ζ(z),ξ(h))/ι $\sum_{h^{\prime}}\varepsilon^{sim(\zeta(z),\xi(h^{\prime}))/\varepsilon}+ \frac{1}{2}$$\sum_{z^{\prime}}\varepsilon^{sim(\zeta(z^{\prime}),\xi(h))/\varepsilon}$ (11)
+$$L*cont* = 1 2log esim(ζ(z),ξ(h))/ι 2log esim(ζ(z),ξ(h))/ι $\sum_{h^{\prime}}\varepsilon^{sim(\zeta(z),\xi(h^{\prime}))/\varepsilon}+ \frac{1}{2}$$\sum_{z^{\prime}}\varepsilon^{sim(\zeta(z^{\prime}),\xi(h))/\varepsilon}$ (11)
+$$
 Where ζ,ξ are learnable linear projection layers.z is the average representations of the graph from Encoder,h is the mean of decoder representations.z′,h′ represent the corresponding negative samples respectively.
 
 In the given text, 'h" and
@@ -524,16 +524,18 @@ Augmentation in RAG
 This chapter is primarily organized into three dimensions: the stage of augmentation, augmentation data sources, and the process of augmentation, to elaborate on the key technologies in the development of RAG.Taxonomy of RAG's Core Components is illustrated in Fig 4.
 
 6.1
-RAG in Augmentation Stages As a knowledge-intensive task, RAG employs different technical approaches during the language model training's pretraining, fine-tuning, and inference stages.
+RAG in Augmentation Stages 
 
-Pre-training Stage Since the emergence of pre-trained models, researchers have delved into enhancing the performance of Pre-trained Language Models (PTMs) in open-domain Question Answering (QA) through retrieval methods at the pre-training stage. Recognizing and expanding implicit knowledge in pre-trained models can be challenging. REALM[Arora *et al.*, 2023] introduces a more modular and interpretable knowledge embedding approach. Following the Masked Language Model (MLM) paradigm, REALM models both pre-training and fine-tuning as a retrieve-then-predict process, where the language model pre-trains by predicting masked tokens y based on masked sentences x, modeling P(x|y).
+As a knowledge-intensive task, RAG employs different technical approaches during the language model training's pretraining, fine-tuning, and inference stages.
+
+Pre-training Stage 
+Since the emergence of pre-trained models, researchers have delved into enhancing the performance of Pre-trained Language Models (PTMs) in open-domain Question Answering (QA) through retrieval methods at the pre-training stage. Recognizing and expanding implicit knowledge in pre-trained models can be challenging. REALM[Arora *et al.*, 2023] introduces a more modular and interpretable knowledge embedding approach. Following the Masked Language Model (MLM) paradigm, REALM models both pre-training and fine-tuning as a retrieve-then-predict process, where the language model pre-trains by predicting masked tokens y based on masked sentences x, modeling P(x|y).
 
 RETRO[Borgeaud *et al.*, 2022]leverages retrieval augmentation for pre-training a self-regressive language model, enabling large-scale pre-training from scratch by retrieving from a massive set of labeled data and significantly reducing model parameters.
 
 RETRO shares the backbone structure with GPT models and introduces an additional RETRO encoder to encode features of neighboring entities retrieved from an external knowledge base.
 
-Additionally, RETRO
-incorporates block-wise cross-attention layers in its decoder transformer structure to effectively integrate retrieval information from the RETRO encoder. RETRO achieves lower perplexity than standard GPT models. Moreover, it provides flexibility in updating knowledge stored in the language models by updating the retrieval database without the need for retraining the language models [Petroni *et al.*, 2019].
+Additionally, RETROincorporates block-wise cross-attention layers in its decoder transformer structure to effectively integrate retrieval information from the RETRO encoder. RETRO achieves lower perplexity than standard GPT models. Moreover, it provides flexibility in updating knowledge stored in the language models by updating the retrieval database without the need for retraining the language models [Petroni *et al.*, 2019].
 
 Atla[Izacard *et al.*, 2022]employs a similar approach, incorporating a retrieval mechanism using the T5 architecture
 [Raffel *et al.*, 2020]in both the pre-training and fine-tuning stages. Prior to pre-training, it initializes the encoder-decoder LM backbone with a pre-trained T5, and initializes the dense retriever with a pre-trained Contriever.
@@ -548,7 +550,8 @@ In summary, the advantages and limitations of augmented pre-training are evident
 
 Moreover, it achieves higher efficiency by utilizing fewer parameters compared to purely pre-trained models. It particularly excels in handling knowledge-intensive tasks, allowing the creation of domainspecific models through training on domain-specific corpora. However, there are drawbacks, including the requirement for a substantial amount of pre-training data and larger training resources, as well as the issue of slower update speeds. Especially as model size increases, the cost of retrieval-enhanced training becomes relatively higher. Despite these limitations, this method demonstrates notable characteristics in terms of model robustness. Once trained, retrieval-enhanced models based on pure pre-training eliminate the need for external library dependencies, enhancing both generation speed and operational efficiency.
 
-Fine-tuning Stage During the downstream fine-tuning phase, researchers have employed various methods to fine-tune retrievers and generators for improved information retrieval, primarily in opendomain question-answering tasks. Concerning retriever finetuning, REPlUG[Shi *et al.*, 2023] treats the language model
+Fine-tuning Stage
+ During the downstream fine-tuning phase, researchers have employed various methods to fine-tune retrievers and generators for improved information retrieval, primarily in opendomain question-answering tasks. Concerning retriever finetuning, REPlUG[Shi *et al.*, 2023] treats the language model
 (LM) as a black box and enhances it through an adjustable retrieval model. By obtaining feedback from the black-box language model through supervised signals, REPLUG improves the initial retrieval model. UPRISE[Cheng *et al.*, 2023a], on the other hand, fine-tunes retrievers by creating a lightweight and versatile retriever through fine-tuning on diverse task sets.
 
 This retriever can automatically provide retrieval prompts for zero-shot tasks, showcasing its universality and improved performance across tasks and models.
@@ -568,7 +571,8 @@ Firstly, finetuning both LLM and retriever allows better adaptation to specific 
 
 However, fine-tuning during this phase comes with limitations, such as the need for datasets specifically prepared for RAG fine-tuning and the requirement for substantial computational resources compared to the RAG during the inference phase. Overall, during fine-tuning, researchers have the flexibility to tailor models according to specific requirements and data formats, reducing the resource consumption compared to the pre-training phase while retaining the ability to adjust the model's output style.
 
-Inference Stage The integration of RAG methods with LLM has become a prevalent research direction in the inference phase. Notably, the research paradigm of Naive RAG relies on incorporating retrieval content during the inference stage.
+Inference Stage 
+The integration of RAG methods with LLM has become a prevalent research direction in the inference phase. Notably, the research paradigm of Naive RAG relies on incorporating retrieval content during the inference stage.
 
 To overcome the limitations of Naive RAG, researchers have introduced richer context in the RAG during the inference phase. The DSP[Khattab *et al.*, 2022] framework relies on a complex pipeline that involves passing natural language text between a frozen Language Model (LM) and a Retrieval Model (RM), providing the model with more informative context to enhance generation quality. PKG equips LLMs with a knowledge-guided module that allows access to relevant knowledge without altering the parameters of LLMs, enabling the model to perform more sophisticated tasks. Additionally, CREA-ICL[Li *et al.*, 2023b] leverages synchronous retrieval of cross-lingual knowledge to assist in acquiring additional information, while RECITE forms context by sampling one or more paragraphs from LLMs.
 
@@ -593,8 +597,7 @@ In terms of text granularity, beyond the common chunks (including sentences), th
 
 At the word level, FLARE employs an active retrieval strategy, conducting retrieval only when the LM generates lowprobability words. The method involves generating a temporary next sentence for retrieval of relevant documents, then re-generating the next sentence under the condition of the retrieved documents to predict subsequent sentences.
 
-At the chunk level, RETRO uses the previous chunk to retrieve the nearest neighboring chunk and integrates this information with the contextual information of the previous chunk to guide the generation of the next chunk. RETRO achieves this by retrieving the nearest neighboring block N(Ci−1)
-from the retrieval database, then fusing the contextual information of the preceding blocks (C1*, . . . , C*i−1) and the retrieval information of N(Ci−1) through cross-attention to guide the generation of the next block Ci. To maintain causality, the autoregressive generation of the i-th block Ci can only use the nearest neighbor of the previous block N(Ci−1) and not N(Ci).
+At the chunk level, RETRO uses the previous chunk to retrieve the nearest neighboring chunk and integrates this information with the contextual information of the previous chunk to guide the generation of the next chunk. RETRO achieves this by retrieving the nearest neighboring block N(Ci−1) from the retrieval database, then fusing the contextual information of the preceding blocks (C1*, . . . , C*i−1) and the retrieval information of N(Ci−1) through cross-attention to guide the generation of the next block Ci. To maintain causality, the autoregressive generation of the i-th block Ci can only use the nearest neighbor of the previous block N(Ci−1) and not N(Ci).
 
 Augmented with Structured Data Structured data sources like Knowledge Graphs (KG) are gradually integrated into the paradigm of RAG. Verified KGs can offer higher-quality context, reducing the likelihood of model hallucinations.
 
@@ -620,11 +623,14 @@ Selfmem[Cheng *et al.*, 2023b] iteratively uses a retrievalenhanced generator to
 These diverse approaches showcase innovative strategies in RAG retrieval enhancement, aiming to elevate model performance and effectiveness.
 
 6.3
-Augmentation Process Most RAG research typically only performs a single retrieval and generation process. However, single retrievals may contain redundant information, leading to a "lost in the middle" phenomenon[Liu *et al.*, 2023]. This redundant information can obscure key information or contain information contrary to the real answer, negatively impacting the generation effect[Yoran *et al.*, 2023]. Additionally, the information obtained from a single retrieval is limited in problems requiring multi-step reasoning.
+Augmentation Process 
+Most RAG research typically only performs a single retrieval and generation process. However, single retrievals may contain redundant information, leading to a "lost in the middle" phenomenon[Liu *et al.*, 2023]. This redundant information can obscure key information or contain information contrary to the real answer, negatively impacting the generation effect[Yoran *et al.*, 2023]. Additionally, the information obtained from a single retrieval is limited in problems requiring multi-step reasoning.
 
 Current methods to optimize the retrieval process mainly include iterative retrieval and adaptive retrieval. These allow the model to iterate multiple times during the retrieval process or adaptively adjust the retrieval process to better accommodate different tasks and scenarios.
 
-Iterative Retrieval Regularly collecting documents based on the original query and generated text can provide additional materials for LLMs[Borgeaud *et al.*, 2022, Arora *et al.*, 2023]. Providing additional references in multiple iterative retrievals has improved the robustness of subsequent answer generation. However, this method may be semantically discontinuous and potentially lead to the collection of noisy and useless information, as it primarily relies on a sequence of n tokens to separate the generated and retrieved documents.
+Iterative Retrieval 
+
+Regularly collecting documents based on the original query and generated text can provide additional materials for LLMs[Borgeaud *et al.*, 2022, Arora *et al.*, 2023]. Providing additional references in multiple iterative retrievals has improved the robustness of subsequent answer generation. However, this method may be semantically discontinuous and potentially lead to the collection of noisy and useless information, as it primarily relies on a sequence of n tokens to separate the generated and retrieved documents.
 
 Recursive retrieval and multi-hop retrieval are used for specific data scenarios. Recursive retrieval can first process data through a structured index, then retrieve it level by level. When retrieving hierarchically rich documents, a summary can be made for each section in an entire document or long PDF. A retrieval is then performed based on the summary. After determining the document, a second retrieval is conducted for the internal chunks, thus realizing recursive retrieval. Multi-hop retrieval is often used to further mine information in graph-structured data sources[Li *et al.*, 2023c].
 
@@ -635,7 +641,9 @@ ITER-RETGEN [Shao *et al.*, 2023] collaboratively utilizes
 
 IRCoT[Trivedi *et al.*, 2022] also explores retrieving documents for each generated sentence, introducing retrieval at every step of the thought chain. It uses CoT to guide the retrieval and uses the retrieval results to improve CoT, ensuring semantic completeness.
 
-Adaptive Retrieval Indeed, the RAG methods described in the previous two sections follow a passive approach where retrieval is prioritized. This method, which involves querying related documents and inputting into a LLM based on context, may lead to efficiency issues. Adaptive retrieval methods such as those introduced by Flare[Jiang *et al.*, 2023b] and Self- RAG[Asai *et al.*, 2023b], optimize the RAG retrieval process, enabling the LLM to actively judge the timing and content of retrieval. This helps to improve the efficiency and relevance of the information retrieved.
+Adaptive Retrieval 
+
+Indeed, the RAG methods described in the previous two sections follow a passive approach where retrieval is prioritized. This method, which involves querying related documents and inputting into a LLM based on context, may lead to efficiency issues. Adaptive retrieval methods such as those introduced by Flare[Jiang *et al.*, 2023b] and Self- RAG[Asai *et al.*, 2023b], optimize the RAG retrieval process, enabling the LLM to actively judge the timing and content of retrieval. This helps to improve the efficiency and relevance of the information retrieved.
 
 In fact, the way in which LLM actively uses tools and makes judgments is not originated from RAG but has been widely used in the agents of large models[Yang *et al.*, 2023c, Schick *et al.*, 2023, Zhang, 2023].
 
@@ -650,19 +658,24 @@ Self-RAG[Asai *et al.*, 2023b] introduces an important innovation called Reflect
 
 When retrieval is needed, the generator processes multiple paragraphs simultaneously, performing fragmentlevel beam search to obtain the best sequence. The scores for each subdivision are updated using Critic scores, and these weights can be adjusted during the inference process to customize the model's behavior. The Self-RAG framework also allows the LLM to autonomously determine whether recall is necessary, avoiding training additional classifiers or relying on NLI models. This enhances the model's ability to autonomously judge inputs and generate accurate answers.
 
-7
-RAG Evaluation In exploring the development and optimization of RAG, effectively evaluating its performance has emerged as a central issue. This chapter primarily discusses the methods of evaluation, key metrics for RAG, the abilities it should possess, and some mainstream evaluation frameworks.
+7 RAG Evaluation 
 
-## 7.1 Evaluation Methods There Are Primarily Two Approaches To Evaluating The Effectiveness Of Rag: Independent Evaluation And End-To-End
+In exploring the development and optimization of RAG, effectively evaluating its performance has emerged as a central issue. This chapter primarily discusses the methods of evaluation, key metrics for RAG, the abilities it should possess, and some mainstream evaluation frameworks.
 
-evaluation[Liu, 2023].
+## 7.1 Evaluation Methods 
 
-Independent Evaluation Independent evaluation includes assessing the retrieval module and the generation (read/synthesis) module.
+There Are Primarily Two Approaches To Evaluating The Effectiveness Of Rag: Independent Evaluation And End-To-End evaluation[Liu, 2023].
+
+Independent Evaluation 
+
+Independent evaluation includes assessing the retrieval module and the generation (read/synthesis) module.
 
 1. Retrieval Module A suite of metrics that measure the effectiveness of systems (like search engines, recommendation systems, or information retrieval systems) in ranking items according to queries or tasks are commonly used to evaluate the performance of the RAG retrieval module. Examples include Hit Rate, MRR, NDCG, Precision, etc.
 2. Generation Module The generation module here refers to the enhanced or synthesized input formed by supplementing the retrieved documents into the query, distinct from the final answer/response generation, which is typically evaluated end-to-end. The evaluation metrics for the generation module mainly focus on context relevance, measuring the relatedness of retrieved documents to the query question.
 
-End-to-End Evaluation End-to-end evaluation assesses the final response generated by the RAG model for a given input, involving the relevance and alignment of the model-generated answers with the input query.
+End-to-End Evaluation 
+
+End-to-end evaluation assesses the final response generated by the RAG model for a given input, involving the relevance and alignment of the model-generated answers with the input query.
 
 From the perspective of content generation goals, evaluation can be divided into unlabeled and labeled content.
 
@@ -670,8 +683,9 @@ Unlabeled content evaluation metrics include answer fidelity, answer relevance, 
 
 These metrics help in understanding the performance of RAG in various specific application scenarios.
 
-7.2
-Key Metrics and Abilities Existing research often lacks rigorous evaluation of the impact of retrieval-augmented generation on different LLMs. In most cases, the evaluaion of RAG's application in various downstream tasks and with different retrievers may yield divergent results. However, some academic and engineering practices have focused on general evaluation metrics for RAG and the abilities required for its effective use. This section primarily introduces key metrics for evaluating RAG's effectiveness and essential abilities for assessing its performance.
+7.2 Key Metrics and Abilities 
+
+Existing research often lacks rigorous evaluation of the impact of retrieval-augmented generation on different LLMs. In most cases, the evaluaion of RAG's application in various downstream tasks and with different retrievers may yield divergent results. However, some academic and engineering practices have focused on general evaluation metrics for RAG and the abilities required for its effective use. This section primarily introduces key metrics for evaluating RAG's effectiveness and essential abilities for assessing its performance.
 
 Key Metrics Recent OpenAI
 report[Jarvis and Allard, 2023]
@@ -682,16 +696,22 @@ and its evaluation metrics.
 Additionally, the latest evaluation frameworks like RAGAS[Es *et al.*, 2023]
 and ARES[Saad-Falcon *et al.*, 2023] also involve RAG evaluation metrics. Summarizing these works, three core metrics are primarily focused on: Faithfulness of the answer, Answer Relevance, and Context Relevance.
 
-1. Faithfulness This metric emphasizes that the answers generated by the model must remain true to the given context, ensuring that the answers are consistent with the context information and do not deviate or contradict it. This aspect of evaluation is vital for addressing illusions in large models.
+1. Faithfulness 
+   
+   This metric emphasizes that the answers generated by the model must remain true to the given context, ensuring that the answers are consistent with the context information and do not deviate or contradict it. This aspect of evaluation is vital for addressing illusions in large models.
 2. Answer Relevance
    This metric stresses that the generated answers need to be directly related to the posed question.
 3. Context Relevance This metric demands that the retrieved contextual information be as accurate and targeted as possible, avoiding irrelevant content. After all, processing long texts is costly for LLMs, and too much irrelevant information can reduce the efficiency of LLMs in utilizing context. The OpenAI report also mentioned "Context Recall" as a supplementary metric, measuring the model's ability to retrieve all relevant information needed to answer a question. This metric reflects the search optimization level of the RAG retrieval module. A low recall rate indicates a potential need for optimization of the search functionality, such as introducing re-ranking mechanisms or fine-tuning embeddings, to ensure more relevant content retrieval.
 
-Key abilities The work of RGB[Chen *et al.*, 2023b] analyzed the performance of different large language models in terms of four basic abilities required for RAG, including Noise Robustness, Negative Rejection, Information Integration, and Counterfactual Robustness, establishing a benchmark for retrievalaugmented generation.RGB focuses on the following four abilities:
+Key abilities 
+The work of RGB[Chen *et al.*, 2023b] analyzed the performance of different large language models in terms of four basic abilities required for RAG, including Noise Robustness, Negative Rejection, Information Integration, and Counterfactual Robustness, establishing a benchmark for retrievalaugmented generation.RGB focuses on the following four abilities:
 
-1. Noise Robustness This capability measures the model's efficiency in handling noisy documents, which are those related to the question but do not contain useful information.
-2. Negative Rejection When documents retrieved by the model lack the knowledge required to answer a question, the model should correctly refuse to respond. In the test setting for negative rejection, external documents contain only noise. Ideally, the LLM should issue a "lack of information" or similar refusal signal.
-3. Information Integration This ability assesses whether the model can integrate information from multiple documents to answer more complex questions.
+1. Noise Robustness 
+   This capability measures the model's efficiency in handling noisy documents, which are those related to the question but do not contain useful information.
+2. Negative Rejection 
+   When documents retrieved by the model lack the knowledge required to answer a question, the model should correctly refuse to respond. In the test setting for negative rejection, external documents contain only noise. Ideally, the LLM should issue a "lack of information" or similar refusal signal.
+3. Information Integration 
+   This ability assesses whether the model can integrate information from multiple documents to answer more complex questions.
 4. Counterfactual Robustness
    This test aims to evaluate whether the model can identify and deal with known erroneous information in documents when receiving instructions about potential risks in retrieved information. Counterfactual robustness tests include questions that the LLM can answer directly, but
    the related external documents contain factual errors.
@@ -706,12 +726,19 @@ API[Es *et al.*, 2023].
 
 Algorithm Principles
 
-1. Assessing Answer Faithfulness: Decompose the answer
+1. Assessing Answer Faithfulness: 
+   Decompose the answer
    into individual statements using an LLM and verify whether each statement is consistent with the context. Ultimately, a "Faithfulness Score" is calculated by comparing the number of supported statements to the total number of statements.
-2. Assessing Answer Relevance: Generate potential questions using an LLM and calculate the similarity between these questions and the original question. The Answer Relevance Score is derived by calculating the average similarity of all generated questions to the original question.
-3. Assessing Context Relevance: Extract sentences directly
+2. Assessing Answer Relevance: 
+   Generate potential questions using an LLM and calculate the similarity between these questions and the original question. The Answer Relevance Score is derived by calculating the average similarity of all generated questions to the original question.
+   
+3. Assessing Context Relevance: 
+   Extract sentences directly
    relevant to the question using an LLM, and use the ratio of these sentences to the total number of sentences in the context as the Context Relevance Score.
+
+
    ARES
+
    ARES aims to automatically evaluate the performance of RAG systems in three aspects: Context Relevance, Answer Faithfulness, and Answer Relevance. These evaluation metrics are similar to those in RAGAS. However, RAGAS, being a newer evaluation framework based on simple handwritten prompts, has limited adaptability to new RAG evaluation settings, which is one of the significances of the ARES work. Furthermore, as demonstrated in its assessments, ARES performs significantly lower than RAGAS. ARES reduces the cost of evaluation by using a small amount of manually annotated data and synthetic data, and utilizes Predictive-Driven Reasoning (PDR) to provide statistical confidence intervals, enhancing the accuracy of evaluation[Saad-Falcon *et al.*, 2023].
 
 Algorithm Principles
@@ -748,6 +775,7 @@ The ease of implementation and alignment with corporate engineering needs have c
 However, in engineering practice, questions like how to improve retrieval efficiency and document recall rate in large-scale knowledge base scenarios, and how to ensure enterprise data security, such as preventing LLMs from being induced to disclose the source, metadata, or other information of documents, are crucial issues that need resolution[Alon *et al.*, 2022].
 
 Horizontal expansion of RAG
+
 Research on RAG has rapidly expanded in the horizontal field. Starting from the initial text question answering domain, RAG's ideas have gradually been applied to more modal data, such as images, code, structured knowledge, audio and video, and so on. There are already many works in this regard.
 
 In the image field, the propozhiyosal of BLIP-
@@ -772,8 +800,7 @@ Downstream Tasks and Evaluation By integrating relevant information from a broad
 
 Given the success of RAG, exploring the model's adaptability and universality in multi-domain applications will be part of future work. This includes its use in professional domain knowledge question-answering, such as in medicine, law, and education. In the application of downstream tasks such as professional domain knowledge question-answering, RAG might offer lower training costs and better performance benefits than fine-tuning.
 
-Simultaneously, improving the evaluation system of RAG
-for assessing and optimizing its application in different downstream tasks is crucial for the model's efficiency and benefits in specific tasks. This includes developing more accurate evaluation metrics and frameworks for different downstream tasks, such as context relevance, content creativity, and harmlessness, among others.
+Simultaneously, improving the evaluation system of RAG for assessing and optimizing its application in different downstream tasks is crucial for the model's efficiency and benefits in specific tasks. This includes developing more accurate evaluation metrics and frameworks for different downstream tasks, such as context relevance, content creativity, and harmlessness, among others.
 
 Furthermore, enhancing the interpretability of models through RAG, allowing users to better understand how and why the model makes specific responses, is also a meaningful task.
 

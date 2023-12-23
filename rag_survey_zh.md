@@ -355,7 +355,6 @@ SANTA[Li *et al.*, 2023d] 研究提出了两种新的预训练方法，旨在让
    Atlas[Izacard *et al.*, 2022] 提出了四种提升监督式嵌入模型性能的方法。在这些方法中，注意力蒸馏法是通过模仿语言模型在生成答案时所关注的信息点来进行的。而 EMDR2 则采用了期望最大化算法，通过把检索到的文档当作隐藏的变量来进行训练。
 
    困惑度蒸馏法直接采用模型生成词汇的困惑度（即模型对词汇出现概率的预测准确度）作为衡量标准进行训练。LOOP 引入了一种新的损失函数，这个函数基于移除文档后对模型预测结果的影响来定义，提供了一种有效的训练方法，以便模型更好地针对特定任务进行优化。
-
 2. **接入一个适配器模块**
 
    但是，由于需要通过 API 来实现嵌入功能或本地计算资源可能不足等问题，对嵌入模型进行微调可能会遇到一些难题。
@@ -364,8 +363,421 @@ SANTA[Li *et al.*, 2023d] 研究提出了两种新的预训练方法，旨在让
 
    TokenFiltering[Berchansky *et al.*, 2023] 方法通过计算交叉注意力分数来筛选出最重要的输入词汇，从而有效地进行词汇过滤。RECOMP[Xu *et al.*, 2023a] 提出了抽取式和生成式的压缩技术，它们通过挑选出与查询最相关的句子或者合成文档的关键信息来生成摘要，实现了针对多文档查询的焦点摘要。此外，PKG[Luo *et al.*, 2023] 提出了一种创新方法，它通过指令性的微调过程将知识融入到一个透明的模型中，并且直接用这种方法取代了传统的检索模块，使得模型能够直接根据查询输出相关文档。
 
+## 5 生成器 Generator
 
-   ---
+RAG 系统中的另一个关键部分是生成器，它的职责是把检索到的信息转化为自然流畅的文本。生成器的设计受到了传统大语言模型的影响，但与一般的生成模型不同，RAG 的生成器通过结合检索到的信息来提升文本的准确性和相关性。在 RAG 体系中，生成器接收的输入信息不仅包括传统的上下文信息，还有检索器找到的相关文本片段。这让生成器能更深入地理解提问的背景，并生成更加丰富的回答。同时，生成器会参考检索到的文本来确保其生成的内容与检索到的信息保持一致。输入数据的多样化促使我们在生成阶段采取了一系列有针对性的措施，以便更好地调整大模型以适应来自查询和文档的数据。接下来，我们会详细介绍生成器，包括后检索处理和微调等方面。
+
+### 5.1 后检索处理如何改善检索结果？
+
+在未经特定任务微调的大语言模型领域，大多数研究依靠诸如 GPT-4 [OpenAI, 2023] 这样的知名大语言模型，借助其强大的内置知识库来实现对文档知识的深入检索。尽管如此，这些模型仍然存在一些问题，比如对上下文长度的限制和对重复信息的过度敏感。为了解决这些问题，一些研究致力于后检索处理。后检索处理是指在检索阶段之后，对检索器从庞大的文档数据库中提取的相关信息进行进一步的处理、筛选或优化。这一过程的主要目的是为了提升检索结果的品质，更好地适应用户的需求或者为后续的任务打下基础。具体来说，后检索处理包括了对检索到的文档进行信息压缩和结果重排序等操作。
+
+**信息浓缩**
+即便检索器能够从广阔的知识库中检索到相关信息，我们还是需要面对如何处理检索得到的大量文档信息的问题。一些研究尝试通过扩展大语言模型的处理上下文长度来应对这一挑战，但现有的大型模型依旧受限于上下文长度。因此，在特定情况下，对信息进行浓缩是必不可少的。总的来说，信息浓缩的重要性主要表现在减少无关信息的干扰、适应上下文长度的限制，以及提升文本生成的效果上。
+
+PRCA [Yang *et al.*, 2023b] 通过培训一个专门的信息抽取器来应对这一挑战。在抽取上下文的阶段，对于给定的输入文本 S*input*，该系统能够生成一个输出序列 C*extracted*，这个序列代表了从输入文档中精炼出的核心内容。训练的目标是让这个抽取出的上下文 C*extracted* 尽可能地接近实际的上下文 C*truth*。他们所使用的损失函数旨在衡量两者之间的差异，具体如下：
+
+$$
+minL(\theta)=-\frac{1}{N}\sum_{i=1}^{N}C_{truth}^{(i)}log(f.(S_{input}^{(i)}; \theta)) \tag{3}
+$$
+
+其中 $f$ 代表信息抽取器，$\theta$ 是该抽取器的参数。类似地， RECOMP[Xuet al., 2023a] 利用对比学习的方法训练了一个信息凝练器。对于每个训练样本，都会有一个正面样本和五个反面样本。在这个过程中，编码器通过对比损失函数 [Karpukhinet al., 2020]来进行优化训练。具体的优化目标包括：
+
+$$
+-log\frac{e^{sim(x_{i},p_{i})}}{sim(x_{i},p_{i})+\sum_{n_{j}\in N_{i}}e^{sim(x_ {i},p_{i})}} \tag{4}
+$$
+
+其中，$x_{i}$ 代表训练数据，$p_{i}$ 为正面样本，$n_{j}$ 为负面样本，$sim(x,y)$ 的功能是计算 $x$ 和 $y$ 之间的相似度。另一个研究团队决定进一步减少文档的数量，目的是通过缩小检索文档的范围来提升模型回答问题的准确度。[Ma *et al.*, 2023b] 提出了一种新的“过滤-排序”模式，该模式融合了大语言模型（LLMs）和小语言模型（SLMs）的优点。在这种模式下，SLMs 起到过滤的作用，而 LLMs 则负责对筛选后的内容进行重新排序。研究显示，通过让 LLMs 对 SLMs 筛选出的复杂样本进行重排，能够在多个信息提取任务上取得显著的成效。
+
+**重新排序 ReRanking**
+
+重排序模型的核心作用体现在它能够改进搜索引擎检索出的文档集合的质量。
+
+当引入更多的相关信息时，大语言模型（LLMs）可能会出现性能下降的问题。为了解决这一难题，重排序方法被证明是一种有效的策略。其核心理念是对文档进行重新组织，确保最关键的信息排在最前面，这样做可以将处理的文档数量控制在一个合理的范围内。这种方法不仅能够克服在信息检索过程中可能出现的信息过载问题，还能够显著提升检索的效率和系统的反应速度[Zhuang *et al.*, 2023]。
+
+重排序过程中引入的上下文压缩技术，其目标是确保仅根据用户的查询上下文来提供相关信息。这种策略的双重价值在于，它不仅减少了每个文档中不必要的信息量，还筛选出了整个文档集中的关键内容，使得检索结果更加聚焦于用户最需要的信息。从而，重排序模型在信息检索的全过程中起到了关键的优化与提炼作用，它为后续的大语言模型（LLMs）处理环节提供了更为精确有效的数据输入。
+
+## 5.2 如何微调生成器？
+
+在 RAG（检索增强的生成器）模型中，对生成器部分进行优化至关重要。生成器的职责是将检索到的信息转化为相关的文本，这一过程决定了模型输出的质量。优化生成器的主要目的是为了保证输出的文本不仅通顺自然，而且能够充分利用检索到的文档内容，以便更准确地回应用户的搜索意图。
+
+在常规的大语言模型（LLM）生成任务中，我们通常以一个查询作为输入。而在 RAG 模型中，输入的内容更为丰富，不仅包括用户的查询，还包含了检索器返回的各类文档（无论是有结构的还是无结构的）。这些额外的信息可能会显著影响模型的理解能力，尤其是在模型规模较小时。因此，在这种场景下，对模型进行细致的微调，使其能够处理“查询加上检索文档”的输入组合，变得格外关键。通常，在将这些输入提供给经过微调的模型之前，需要对检索器返回的文档进行一系列的后处理工作。需要指出的是，RAG 模型中对生成器进行微调的方法，在本质上与为大语言模型（LLMs）进行的常规微调是相似的。
+
+接下来，我们将简要介绍一些具有代表性的研究，这些研究涉及不同格式的数据处理和优化方法。
+
+**General Optimization Process**
+
+优化过程通常指的是使用含有输入和输出配对的训练数据，这一过程旨在培养模型根据输入 x 产生对应输出 y 的能力。
+
+在 Self-mem[Cheng *et al.*, 2023b] 的研究中，他们采用了一种较为传统的训练方法。具体来说，系统会根据给定的输入 x 检索到相关的文档 z，并在文章中只选择最相关的一个（Top-1）。通过将输入 x 与文档 z 结合，模型进而生成输出 y。
+
+本文采用了两种常用的微调方法，分别是 Joint-Encoder [Arora *et al.*, 2023; Wang *et al.*, 2022b; Lewis *et al.*, 2020] 和 Dual-Encoder [Xia *et al.*, 2019; Cai *et al.*, 2021; Cheng *et al.*, 2022]。
+
+在 Joint-Encoder 方法中，研究者使用了一种标准的编解码模型。这个模型首先通过编码器处理输入信息，然后解码器利用注意力机制，将编码得到的信息组合起来，逐步生成文本片段（Token），这个过程是连续且自我依赖的。
+
+$$
+H = Encoder(x[SEP]m) (5)
+$$
+
+$$
+h^i = Decoder(CrossAttn(H), y < i) (6)
+$$
+
+$$
+PG_ξ(.|x, y < i) = Softmax(h^i)(7)
+$$
+
+在 Dual-Encoder 结构中，系统配置了两个独立的编码器，一个用于处理输入的查询和上下文信息，另一个用于处理文档内容。接着，解码器会依次对这些输出信息进行一种称为双向交叉注意力的高级分析。研究者选用了 Transformer [Vaswani *et al.*, 2017] 作为这两种结构的基础，并且通过优化一个称为负对数似然（NLL）的数学函数来提升模型的性能。
+
+$$
+Hx = SourceEncoder(x)Hm = MemoryEncoder(x) (8)
+$$
+
+$$
+h^i = Decoder(CrossAttn(Hx, Hm), y < i) (9)
+$$
+
+$$
+Lnll = −  \sum\limits_{t=1}^{|y|}logPG_ξ(y_t|x, m, y < t) (10)
+$$
+
+在准备训练数据的过程中，我们通常会创建一系列输入与输出之间的配对实例。
+
+在这个过程中，模型仅能接触到一个确切的正确答案，这可能会导致所谓的“暴露偏差”问题 [Ranzato *et al.*, 2015]：这意味着在训练过程中，模型只能学习到这个单一的正确答案，而没有机会了解到其他可能的答案，这可能会影响模型的泛化能力。
+
+**应用对比学习技术**
+
+$$
+L_cont = 1/2log_esim(ζ(z),ξ(h))/ι 2log esim(ζ(z),ξ(h))/ι \sum_{h^{\prime}}\varepsilon^{sim(\zeta(z),\xi(h^{\prime}))/\varepsilon}+ \frac{1}{2}
+\sum_{z^{\prime}}\varepsilon^{sim(\zeta(z^{\prime}),\xi(h))/\varepsilon} (11)
+$$
+
+在这里，ζ 和 ξ 分别是两个可以通过学习调整的线性变换层。$z $是编码器（Encoder）处理图数据后得到的平均特征表示，而 h 则是解码器（decoder）输出的特征表示的平均值。$z′$ 和 $h′$ 分别指的是与原有数据对应的负样本的特征表示，即那些不应与输入配对的输出样本。
+
+在这段描述中，$'h'$ 和 $'z'$ 代表了所谓的负样本，即那些在模型训练过程中应当被模型区分开来，而不与当前输入相匹配的样本。通过设立这样的对比学习目标，模型被训练来更有效地生成各种合理的回答，而不是仅仅复制训练数据中的示例。这种方法有效地降低了模型过度拟合训练数据的风险，从而在真实世界的应用场景中，提升了模型的泛化能力。
+
+在处理包含结构化数据的检索任务时，SANTA [Li *et al.*, 2023d] 的研究通过一个分为三个阶段的训练流程来深入挖掘数据的结构性和语义性信息。
+
+更具体地说，当训练检索系统时，研究者采纳了对比学习策略，以此来精细调整查询请求和文档的嵌入向量表示。这一过程的具体优化目标设定如下：
+
+$$
+\mathfrak{L}_{DR}=-log\frac{c^{sim(q,d^{+})}}{e^{f(q,d^{+})}+\sum_{d^{-}\in D^{-}}c ^{sim(q,d^{-})}} \tag{12}
+$$
+
+在这里，$q$ 和$d$分别代表由编码器处理后的查询和文档。$d^{-}$ 和 $d^{+}$ 则分别指代了负样本和正样本。在生成器的早期训练阶段，我们采用了对比学习来确保结构化数据与其对应的非结构化数据的文档描述之间的一致性。优化的目标正如前文所述。
+
+进一步地，在生成器训练的后期阶段，借鉴了文献 [Sciavolinoet al., 2021,Zhanget al., 2019]的研究，我们意识到在检索任务中，实体语义对于学习文本数据的表示具有重要的作用。因此，我们先在结构化数据中识别出实体，然后在生成器训练数据的输入部分对这些实体应用遮蔽操作，这样生成器就能够预测这些被遮蔽的实体。接下来的优化目标是：
+
+$$
+\mathfrak{L}_{MEP}=\sum_{j=1}^{k}-logP(Y_{d}(t_{j})|X_{d}^{mask},Y_{d}(t_{1},...,j-1)) \tag{13}
+$$
+
+其中 $Y_{d}(y_{j})$ 指的是序列 $Y_{d}$ 中的第 j 个词汇（Token）。$Y_{d}$ = $<mask>_{1}$, $ent_{1}$,..., $<mask>_{n}$, $ent_{n}$ 则定义了一个包含遮蔽实体的标准答案序列。在整个训练过程中，我们通过分析上下文信息来揭示那些被遮蔽的实体，从而理解文本数据中的结构性语义，并且将这些实体与结构化数据中的相应实体进行匹配。我们的目标是提升语言模型的能力，使其不仅能填充这些被隐藏的部分，还能更深入地把握实体的语义含义[Yeet al., 2020]。
+
+## 6 RAG 中的增强
+
+本章的内容主要围绕三个维度展开：增强技术的应用阶段、增强技术所依赖的数据来源，以及增强技术的具体实施过程，旨在详细介绍 RAG（检索增强生成）发展中的核心技术。RAG 核心组件的分类学如图 4 所示。
+
+![1703314826799](image/rag_survey_zh/1703314826799.png)
+图 4: RAG（检索增强生成）核心组件的分类体系
+
+### 6.1 对模型各阶段的增强技术
+
+作为一项对知识要求很高的任务，RAG 在语言模型训练的预训练、微调和推理各个阶段，采取了不同的技术手段。
+
+#### 预训练阶段
+
+在预训练阶段，自从预训练模型的出现，研究人员就开始探索如何在预训练阶段通过检索方法来提升预训练语言模型（Pre-trained Language Models, PTMs）在开放域问答（QA）任务中的表现。要在预训练模型中识别并扩充隐式知识是一大挑战。REALM [Arora 等人, 2023] 提出了一种更加模块化且易于解释的知识嵌入方式。遵循遮蔽语言模型（Masked Language Model, MLM）的范式，REALM 把预训练和微调过程设计成了一个检索然后预测的流程，在这个流程中，语言模型通过预测基于被遮蔽句子 x 的被遮蔽 Token y 来进行预训练，从而模拟出条件概率 P(x|y)。
+
+RETRO [Borgeaud 等人, 2022] 利用检索增强（retrieval augmentation）技术预训练自回归式的大语言模型，通过从庞大的标注数据集中检索信息，实现了从头开始的大规模预训练，并显著降低了模型的参数量。
+
+RETRO 采用了与 GPT 模型相同的基础架构，并新增了一个 RETRO 编码层，用于对从外部知识库中检索到的相关实体的特征进行编码。
+
+此外，RETRO 在其解码器的 Transformer 结构中加入了按块划分的交叉注意力层，这样做能够有效地融合从 RETRO 编码器检索到的信息。相较于标准的 GPT 模型，RETRO 实现了更低的困惑度（perplexity，衡量模型预测下一个词时的不确定性的指标）。更为重要的是，RETRO 允许通过简单更新检索数据库的方式来刷新语言模型中的知识，而无需对语言模型本身进行重新训练，这大大提高了模型更新知识的灵活性 [Petroni 等人, 2019]。
+
+Atla [Izacard 等人, 2022] 也采取了相似的策略，在预训练和微调的各个阶段均整合了基于 T5 架构 [Raffel 等人, 2020] 的检索机制。在开始预训练之前，Atla 使用已经预训练好的 T5 来设定编解码器语言模型的基础框架，并使用预训练好的 Contriever 来设定其高效检索系统。
+
+在预训练的过程中，Atla 每隔1000步更新一次其检索索引，以保证信息的时效性和准确性。
+
+COG [Vaze 等人, 2021] 是一种文本生成模型，其创新之处在于它通过逐步复制现有文本集中的片段（比如单词或短语）来构建新文本。不同于传统的文本生成模型按顺序选择单词，COG 运用高效的向量搜索技术来理解文本片段的上下文含义，并将其编入索引。这样，生成文本的任务就转变为一系列的复制和粘贴动作，每一步都是在文本库中寻找合适的片段，而不是在固定的词汇表中挑选。在多个领域中，包括问答、适应不同领域的能力，以及对短语进行更广泛索引方面，COG 都展现出了超越 RETRO 的卓越性能。
+
+另一方面，自从发现了模型性能随参数规模增加而提升的规律之后，模型参数的数量开始快速增长，自回归模型因此成为了研究和应用的热点。研究者们正在尝试用 RAG（检索增强生成）方法来预训练更大规模的模型。RETRO 的进阶版 RETRO++ [Wang 等人, 2023a] 增加了模型的参数量。研究表明，这种扩展在提高文本生成的质量、确保信息的准确性、降低文本的有害内容以及提升下游任务的准确度方面都取得了显著进步，特别是在需要大量知识的开放域问答任务中。这些研究成果表明，将检索技术与自回归语言模型的预训练相结合，是未来构建基础模型的一个充满希望的方向。
+
+总的来说，增强预训练技术既有其明显的优点也有局限。好处是，这种方法打造出了一个功能更强大的基础模型，无论是在理解混乱度、文本生成的质量，还是在特定任务的表现上，都比传统的 GPT 模型要出色。
+
+#### 微调阶段
+
+在模型训练之后的阶段，即微调阶段，研究人员开发了多种方法来优化检索器和生成器，主要目的是提升它们在开放域问答（Open-Domain Question Answering, QA）任务中搜索信息的能力。在微调检索器方面，REPLUG（Shi *et al.*, 2023）不去深究语言模型（Language Model, LM）的内部机制，而是通过一个可调整的检索模型来提升语言模型的性能。REPLUG通过获取语言模型的反馈——这些反馈是通过监督学习得到的——来优化最初的检索模型。而UPRISE（Cheng *et al.*, 2023a）则采取了另一种策略，它通过在多种任务上进行微调，构建了一个既轻量又灵活的检索器，从而提高了检索器的微调效果。
+
+这款检索器能够为那些零样本（Zero-shot）任务自动产生检索提示，证明了它在各种任务和模型上的广泛适用性和性能提升。
+
+在此同时，对于生成器的微调方法也在不断创新。例如，Self-Mem（Cheng *et al.*, 2023b）通过维护一个包含多个示例的记忆库来优化生成器，而 Self-RAG（Asai *et al.*, 2023b）则通过创造性地生成反射 Token 来满足在信息检索时的主动探索需求。
+
+RA-DIT（Lin *et al.*, 2023）的方法通过提高检索增强指令下正确答案出现的概率来同时对生成器和检索器进行精细调整。该方法更新了生成器和检索器，目的是让文档内容与用户查询的语义更加吻合，这样做能够更好地利用与查询相关的背景知识。
+
+此外，SUGRE（Kang *et al.*, 2023）提出了对比学习这一新概念。该方法全面微调检索器和生成器，从而确保文本生成的精确性和检索子图的细节丰富性。
+
+SUGRE 利用基于图神经网络（GNN）的上下文感知子图检索器，能够从与对话实时内容相匹配的知识图谱中提取出相关的知识点。这使得生成的回复能够真实地反映出检索到的知识。为了达到这个目的，SUGRE 使用了一个既稳定又高效的图编码器，并采用了一种图与文本之间的对比学习目标。
+
+总的来说，微调阶段所采用的优化技术具有几个显著的特征。
+
+首先，同时对大语言模型（LLM）和检索器进行微调能够使它们更加精准地适应具体的应用场景，这种做法提供了操作上的灵活性，既可以针对单一组件进行调整，也可以对两者进行联合优化，如 RePlug[Shi *et al.*, 2023] 和 RA-DIT[Lin *et al.*, 2023] 所展示的那样。其次，这种精细调整的优势还体现在模型能够更好地适用于各种不同的下游任务，如 UPRISE[Cheng *et al.*, 2023a] 所证明的，从而增强了模型的应用范围。此外，微调还使得模型能更有效地处理不同数据集中的各种数据结构，这对于那些拥有图形结构的数据集来说尤其有益，正如 SUGRE 方法所强调的。
+
+然而，在微调阶段也存在一些局限性，比如需要专门为 RAG（Retrieval-Augmented Generation）微调准备数据集，以及相较于推理阶段的 RAG，微调阶段需要更多的计算资源。总体而言，在微调过程中，研究者能够根据具体的需求和数据结构来定制模型，这样做相对于预训练阶段节省了资源，并且仍然保持了调整模型输出风格的灵活性。
+
+#### 推理阶段
+
+将 RAG（Retrieval-Augmented Generation）方法与大语言模型（LLM）结合使用，已经成为推理阶段研究的热点方向。特别是，Naive RAG的研究模式强调在推理阶段融合检索得到的信息。这种方法的核心在于利用检索过程中获取的数据来增强模型的推理能力。
+
+为了解决 Naive RAG 的限制，研究者们在推理阶段为 RAG 引入了更加丰富的上下文信息。DSP（Dense Retrieval over Sparse Projections，Khattab *et al.*, 2022）框架依靠一个复杂的流程，通过在固定的语言模型（LM）和检索模型（RM）之间传递自然语言文本，从而为模型提供更加丰富的信息背景，以此提升文本生成的质量。PKG（Prompting with Knowledge Graphs）为大语言模型（LLM）提供了一个知识引导模块，该模块允许模型在不改变其参数的前提下，访问到相关的知识，使得模型能够处理更加复杂的任务。同时，CREA-ICL（Cross-lingual Retrieval-Enhanced Adaptation for Incremental Learning，Li *et al.*, 2023b）通过同步检索跨语言的知识，辅助模型获取更多的信息。而 RECITE 则通过从大语言模型中选取一个或多个段落，构建出用于推理的上下文环境。
+
+在推理阶段，改进 RAG 的处理流程能够帮助模型更好地应对那些更加复杂的任务。
+
+举个例子，ITRG（Iterative Teaching and Retrieval Grounding，Feng *et al.*, 2023a）通过不断地迭代检索和寻找正确的推理路径，提升了模型在处理那些需要连续多步逻辑推理的任务上的适应性和准确性。
+
+ITER-RETGEN（Iterative Retrieval and Generation，Shao *et al.*, 2023）采取了一种迭代策略，巧妙地将信息检索和内容生成结合起来，实现了一个“检索增强生成”与“生成增强检索”交替进行的过程。而 IRCOT（Integrated Retrieval and CoT，Trivedi *et al.*, 2022）则将 RAG 和 CoT（Chain of Thought，Wei *et al.*, 2022）的理念结合，通过交替进行的CoT引导检索，并利用检索结果来优化CoT过程。这种方法显著提升了 GPT-3 在各种问答（QA）任务中的性能，凸显了整合检索与生成过程的巨大潜力。
+
+总的来说，推理阶段的增强技术具备轻量化、成本效益高、无需额外训练和能够充分利用强大预训练模型的优点。它的核心优势在于，在微调时保持大语言模型（LLM）的参数不变，这样做可以集中精力提供更加符合特定任务需求的上下文信息，同时保证了处理速度快和成本低。然而，这种方法也存在一些局限，比如需要进行额外的数据处理和流程优化，并且受限于基础模型的能力。为了更好地适应不同任务的需求，这种方法通常会与步骤式推理、迭代推理和自适应检索等流程优化技术相结合。
+
+### 6.2 对数据源的增强
+
+数据来源对于 RAG（Retrieval-Augmented Generation）的效果至关重要。不同的数据源提供了不同层次和维度的知识，因此需要采用不同的处理方式。这些数据源主要分为三大类：非结构化数据、结构化数据，以及由大语言模型（LLM）生成的内容。
+
+#### 非结构化数据的增强
+
+在非结构化数据方面，这类数据主要是文本形式的，一般来自于纯文本的语料库。除此之外，还有其他形式的文本数据可以用作检索源，比如用于大型模型微调的 Prompt 数据[Cheng *et al.*, 2023a]，以及跨语言的数据集[Li *et al.*, 2023b]。
+
+在文本的细节层面上，除了常见的文本块（如句子）之外，检索的单元还可以是 Token（例如，kNN-LM[Khandelwal *et al.*, 2019]）、短语（例如，NPM[Lee *et al.*, 2020]，COG[Vaze *et al.*, 2021]）以及文档中的段落。更精细的检索单元能够更有效地处理不常见的模式和领域外的情况，但这也意味着检索成本的提高。
+
+在词语层次上，FLARE 采取了一种积极的检索策略，仅在语言模型产生低概率词汇时才执行检索。这个方法包括先生成一个暂时的下一句话来检索相关的文档，然后在获得这些文档的基础上，重新生成下一句话，以此来预测接下来的句子。
+
+在处理文本块时，RETRO 会利用前一个文本块来寻找与之最为相似的邻近文本块，并结合这个邻近块的信息以及前一个块的上下文信息，来引导下一个文本块的创造。具体来说，RETRO 会从数据库中找到前一个块的最邻近块 $N(Ci−1)$，并通过交叉关注机制，将之前块的上下文信息$ (C1*, ..., C*i−1)$ 与最邻近块 $N(Ci−1)$ 的信息结合起来，以此指导下一个块 $Ci $的创造。为了保证生成的连贯性，生成第$ i $个块 $Ci$ 时，只能参考前一个块的最邻近信息$ N(Ci−1)$，而不能参考当前块的邻近信息 $N(Ci)$。
+
+#### 结构化数据的增强
+
+结合了结构化数据的增强，像知识图谱这种结构化的信息源正在逐步融入到 RAG 这一模型架构中。经过核实的知识图谱能够提供更加准确和丰富的背景信息，这有助于降低人工智能产生错误想象的风险。
+
+在 2023 年的一篇研究 [Modarressi *et al.*] 中，RET-LLM 创新性地通过分析过去的对话内容，提取出实体之间的关系，形成一个个性化的知识图谱。这个图谱记忆能够在未来的对话中提供帮助，使对话更加智能和个性化。
+
+SUGRE [Kang *et al.*, 2023]利用图神经网络（GNN）将知识图谱中检索到的相关子图进行处理，这样做可以避免模型产生与谈话内容不相关的回答。
+
+SUGRE [Kang *et al.*, 2023]采纳了一种图编码技术，这种技术可以将知识图谱的结构信息转化为预训练模型（PTMs）能够理解的数据格式。同时，SUGRE 还使用了一种多模态对比学习方法，通过比较图形信息和文本信息的模式，来确保人工智能生成的文本与检索到的事实信息保持一致。
+
+KnowledgeGPT [Wang *et al.*, 2023c]能够为知识库生成搜索指令，并且这些指令是以编程代码的形式呈现的，同时还包括了一些内置的知识库操作工具。KnowledgeGPT 不仅仅是用来检索信息，它还能够根据用户的具体需求，把有用的知识储存在一个定制化的知识库中。这样的结构化信息资源为 RAG 提供了更加丰富和详细的知识背景，从而帮助提升模型的整体表现。
+
+#### 大语言模型（LLM）生成内容的增强
+
+有研究指出，RAG 在提取辅助信息时并不总是那么准确，有时候这些信息反而会起到反作用。为了改进这一点，一些研究者开始更深入地探索大语言模型（LLM）所掌握的知识。他们采用了一种新的方法，即使用大语言模型自己产生的内容来进行信息检索，这样做的目的是为了在更复杂的应用任务中获得更好的表现。以下是这个领域内一些值得关注的研究成果概览：
+
+SKR [Wang *et al.*, 2023d] 利用一个有标签的训练数据集，这个数据集把问题分为两类：一类是模型能够直接回答的“已知问题”，另一类是需要额外信息检索才能回答的“未知问题”。在训练过程中，SKR 学会了如何识别问题属于哪一类。对于那些“未知问题”，模型会进行额外的信息搜索来找到答案；而对于“已知问题”，则直接给出回答。
+
+GenRead [Yu *et al.*, 2022] 的研究中，大语言模型（LLM）的生成功能取代了传统的信息检索工具。实验结果显示，这种方法生成的文档中包含正确答案的几率高于传统的 Naive RAG 方法。不仅如此，答案的准确度和相关性也有所提升。研究者认为，这种提升是因为生成文档的过程与大语言模型原本的训练目标——即因果关系式的语言建模——高度吻合，使得模型能够更有效地运用其参数中储存的广泛知识。
+
+Selfmem [Cheng *et al.*, 2023b] 的研究中，通过不断地使用检索增强型生成器，构建了一个可以不断扩展的记忆库。研究者们设计了一个记忆选择器，用以挑选出适合作为后续内容生成依据的输出结果。这样的输出结果不仅回应了原始的问题，还能够提供额外的信息，相当于是问题的一个补充面。通过这种原始问题与补充问题的结合，检索增强型生成模型能够利用自身之前的输出来进一步优化生成的内容。
+
+这些不同的研究方法展示了在 RAG 检索增强领域的创新尝试，目的是为了提高模型的处理能力和实际应用的有效性。
+
+## 6.3 对 RAG 过程的增强
+
+在 RAG 领域的大部分研究中，检索和内容生成通常只进行一轮。但是，这种单轮检索可能会带来重复而不必要的信息，这就导致了一种被称为“迷失在中间”的问题 [Liu *et al.*, 2023]。这种重复信息有可能掩盖了真正重要的内容，或者引入了与正确答案相悖的信息，从而负面影响了内容生成的质量 [Yoran *et al.*, 2023]。另外，在需要通过多个步骤进行推理的问题上，单轮检索提供的信息往往是不够的。
+
+为了提升检索的准确性和适用性，目前的方法主要依赖于迭代检索和自适应检索。迭代检索使得模型能够在检索阶段进行多轮的信息搜集，而自适应检索则让模型根据不同的任务需求和使用场合，调整检索策略。这些优化手段让模型更加灵活，能够更好地处理各种复杂的信息检索任务。
+
+#### 迭代检索
+
+迭代检索是通过不断地根据最初的查询和已生成的文本来搜集新的文档，从而为大语言模型 (LLM) 提供更多的参考信息 [Borgeaud *et al.*, 2022; Arora *et al.*, 2023]。这种多轮的信息搜集方式已经增强了模型在生成答案时的稳定性和准确性。但是，这个过程也可能会引入不连贯的语义和无关的信息，因为它主要是通过一系列的 Token 来区分不同的文档，这可能会使得检索结果包含一些干扰信息。
+
+递归检索和多跳检索是针对不同数据类型设计的高级检索技术。在递归检索中，系统首先通过一个有组织的索引来预处理数据，接着逐级进行深入检索。例如，在处理一个结构复杂的文档或一本长篇PDF时，可以先为每个章节制作一个摘要，然后根据这些摘要来定位相关信息。一旦找到了目标文档，系统会进一步检索文档内部的具体内容，这样就完成了递归式的信息查找。而多跳检索则是在处理图形结构化的数据时使用，如社交网络或知识图谱，它通过多个步骤来探索和连接数据点，以挖掘深层次的信息 [Li *et al.*, 2023c]。
+
+有些方法在检索和生成信息的步骤之间反复循环。
+
+ITER-RETGEN [Shao *et al.*, 2023] 结合了“检索增强的内容生成”和“内容生成增强的检索”技术，专门用于那些需要精确复现信息的任务。具体来说，模型根据任务需求选取关键内容，以此来回应提出的问题。这些精选内容随后作为检索更多相关知识的基础，帮助模型在下一轮迭代中生成更加准确的回答。
+
+IRCoT [Trivedi *et al.*, 2022] 则在每个生成的句子中都进行文档检索，使得在整个思考过程中的每一步都融入了信息检索。该方法利用“链式推理”（CoT）来指导信息的检索，并以检索到的信息来丰富和完善链式推理过程，确保了生成内容的语义完整性。
+
+#### 自适应检索
+
+实际上，前面提到的 RAG 方法采取了一种较为被动的策略，优先进行信息检索。这种策略通过查询与问题相关的文档，并将这些信息输入到大语言模型中进行处理，有时会造成处理效率低下的问题。为了解决这一问题，Flare [Jiang *et al.*, 2023b] 和 Self-RAG [Asai *et al.*, 2023b] 引入了自适应检索技术，这些技术改进了 RAG 的检索流程，使得大语言模型可以更加主动和灵活地决定何时以及检索什么内容。这种改进显著提高了检索到的信息的效率和相关性。
+
+实际上，大语言模型（LLM）主动运用工具和进行判断的策略，并不是首次出现在 RAG 中，这种策略在其他大型模型的 AI 智能体中已经被广泛采纳 [Yang *et al.*, 2023c; Schick *et al.*, 2023; Zhang, 2023]。
+
+以 Graph-Toolformer [Zhang, 2023] 为例，其检索步骤可以概括为：大语言模型会主动操作检索工具，而 Self-Ask 和 DSP [Khattab *et al.*, 2022] 则尝试利用少样本（few-shot）的提示来激活大语言模型的搜索功能。当大语言模型判定需要更多信息时，它会自行发起搜索，寻找相关的信息，这一过程就像 AI 智能体调用工具一样自然。
+
+WebGPT [Nakano *et al.*, 2021] 利用强化学习的方法，自动地训练 GPT-3 模型，使其学会如何借助搜索引擎来创造文本。在这个过程中，它运用了一系列特殊的 Token，以执行各种操作，包括在搜索引擎上进行搜索、浏览搜索结果、以及引用文献资料。这样的技术让 GPT-3 能够有效地结合搜索引擎的功能来生成文本内容。
+
+另一方面，Flare [Jiang *et al.*, 2023b] 创新地实现了检索时机的自动化，并根据生成文本的可能性来优化文档检索的频率，从而降低了成本。在这个系统中，概率被用作评估大语言模型生成过程中的自信度。当某个词汇的生成概率低于设定的门槛值时，信息检索系统便会介入，检索相关的参考资料，并筛除那些不够可能的词汇。这种策略旨在应对大语言模型在生成内容时，可能会遇到的知识不足的情况。
+
+Self-RAG [Asai *et al.*, 2023b] 提出了一个名为反思 Token（Reflection tokens）的重要创新。这些特殊的 Token 被设计用来复审模型的输出结果，分为两类：检索（Retrieve）和批评（Critic）。模型能够根据需要自行决定何时回顾并获取信息段落，或者依据预设的标准来启动信息的检索过程。
+
+在需要检索信息时，生成器能够同时处理多段文本，通过进行细节层面的束搜索（beam search）来确保选出最合适的文本序列。每一部分的评分都会根据批评（Critic）分数进行更新，而且这些评分权重在模型运行时可以调整，以便根据不同情境定制模型的响应。Self-RAG框架还赋予了大语言模型自行判断是否需要重新检索信息的能力，从而免去了训练额外分类器或依赖于自然语言推理（NLI）模型的必要。这一特点提升了模型独立评估输入和生成精确回答的能力。
+
+## 7. RAG 的评估
+
+在研究 RAG 技术的进步和如何进行优化时，如何有效地评价其性能变得至关重要。本章将重点介绍评估 RAG 性能的方法、衡量其性能的关键指标、RAG 应有的功能特性，以及目前广泛使用的一些评估框架。
+
+### 7.1 评估的方法
+
+评估 RAG 的有效性主要有两种方法：独立评估和端到端评估 [Liu, 2023]。
+
+#### 独立评估
+
+在独立评估中，我们会分别评价检索模块和生成模块（即阅读和合成信息的能力）的性能。
+
+1. 检索模块 
+   
+    为了评估 RAG 检索模块的性能，我们通常会使用一套衡量系统有效性的指标。这些系统可能是搜索引擎、推荐系统或信息检索系统，它们的任务是根据用户的查询或特定任务来对结果进行排序。常用的评估指标包括命中率（Hit Rate）、平均排名倒数（Mean Reciprocal Rank, MRR）、归一化折扣累积增益（Normalized Discounted Cumulative Gain, NDCG）和精确度（Precision）等。
+
+2. 生成模块
+
+    在这里，生成模块是指通过添加检索到的文档内容到用户的查询中，从而形成的改进或者扩展后的输入信息。这与生成最终答案或响应的过程不同，后者一般采用端到端的方式进行评估。对于生成模块的评估，我们主要关注其上下文相关性，即评价检索到的文档与用户提出的问题之间的关联度。
+
+#### 端到端评估
+
+这一评估过程专注于分析 RAG 模型对于特定输入所生成的最终答案的质量。这包括考察模型产生的答案是否与用户的查询问题紧密相关，以及答案的内容是否与查询要求保持一致。
+
+在考虑内容生成的目的时，我们可以将评估分为两类：一类是对于没有明确标记的内容进行评估，另一类是对于有明确标记或分类的内容进行评估。
+
+在未标注内容的评估中，我们关注的指标包括答案的准确性、相关性和是否无害等。对于已标注内容的评估，则涉及到准确率和精确匹配（EM）等指标。另外，从评估手段上来看，端到端评估可以分为人工评估和利用大语言模型（LLM）进行的自动评估。这些内容概述了对 RAG 模型进行端到端评估的常见情况。针对 RAG 在不同领域的具体应用，人们还采用了特定的评估指标，比如在问答任务中使用精确匹配（EM）[Borgeaud 等, 2022; Izacard 等, 2022]，在文本摘要任务中使用 UniEval 和 E-F1 [Jiang 等, 2023b]，以及在机器翻译中使用 BLEU [Zhong 等, 2022]。
+
+这些评估指标对于揭示 RAG 在不同特定应用情境下的表现至关重要。
+
+### 7.2 核心评估指标与能力
+
+现有的研究通常没有对检索增强式生成技术（RAG）在不同大语言模型（LLM）上的影响进行深入的评估。在大部分情况下，对 RAG 在多样的下游任务中的应用，以及它与各种检索工具的配合效果进行评估，可能会得到各异的结果。尽管如此，一些学术界和工程界的实践已经开始关注适用于 RAG 的标准评估指标，以及为了有效利用 RAG 所需具备的能力。这一节将重点介绍用于评价 RAG 效果的关键指标，以及评估其绩效所必需的核心能力。
+
+#### 核心评估指标
+最近，OpenAI 发布的报告 [Jarvis and Allard, 2023] 讨论了多种用于优化大语言模型（LLMs）的技术，其中也包括了针对检索增强生成（RAG）及其评估指标的优化方法。
+
+此外，最新的评估框架，如 RAGAS[Es *et al.*, 2023] 和 ARES[Saad-Falcon *et al.*, 2023]，也将 RAG 的评估指标纳入考量。梳理这些研究成果，我们可以看到主要集中关注三个核心评估指标：答案的准确性（Faithfulness of the answer）、答案的相关度（Answer Relevance）以及上下文的相关度（Context Relevance）。
+
+1. 答案的准确性（Faithfulness）
+
+   此指标着重于模型生成的答案必须忠实于提供的上下文，确保答案与上下文信息相符，既不偏离也不与之相矛盾。这一评估方面对于避免大型模型产生误导性信息至关重要。
+
+2. 答案的相关度（Answer Relevance）
+
+   此指标强调，模型给出的答案必须与提出的问题紧密相关，确保回答的内容切中要害。
+
+3. 上下文的相关度（Context Relevance）
+   
+   此指标要求模型检索到的上下文信息必须尽可能地精准和目标明确，以排除那些无关紧要的内容。对于大语言模型（LLM）而言，处理冗长的文本需要消耗大量资源，而过多的无关信息会削弱模型利用上下文的效率。OpenAI 在其报告中还特别提到了“上下文召回”（Context Recall）作为一个辅助指标，用以衡量模型回溯并检索出所有回答问题所必需的相关信息的能力。这一指标体现了 RAG 检索模块在搜索优化方面的成效。如果召回率较低，则表明搜索功能可能需要进一步优化，比如通过引入重排序机制或调整嵌入向量来确保能够检索到更多相关内容。
+
+#### 核心能力
+
+RGB[Chen *et al.*, 2023b]的研究评估了不同大语言模型在满足 RAG（检索增强型生成）所需的四大核心技能方面的表现，这四大技能包括**噪声鲁棒性**（Noise Robustness）、**否定性拒绝**（Negative Rejection）、**信息融合**（Information Integration）和**反事实鲁棒性**（Counterfactual Robustness），从而为此类模型设立了性能评估的标准。RGB 特别关注这四项能力：
+
+1. 噪声鲁棒性（Noise Robustness）
+   此项能力指的是模型在处理含有干扰信息的文档时的效能，即那些虽然与提出的问题看上去有关联，但实际上并未包含对解答问题有帮助信息的文档。
+
+
+2. 否定性拒绝（Negative Rejection）
+   如果模型检索的文档没有包含解答问题所必需的知识，模型应当能够正确地判断并拒绝给出回答。在进行否定性拒绝能力的测试时，提供给模型的外部文档将仅包含无关信息。理想状态下，大语言模型应该能够明确表示“信息不足”或发出类似的拒答信号。
+
+3. 信息整合（Information Integration）
+   此能力指的是模型是否能结合多份文档中的信息，以解答那些需要更广泛知识的复杂问题。
+
+4. 反事实鲁棒性（Counterfactual Robustness）
+   此项测试的目的是检验模型在被告知检索到的信息可能存在风险时，能否辨别并应对文档中的错误信息。在反事实鲁棒性的测试中，虽然大语言模型能够直接回答出问题的答案，但是相关的外部文档中却存在着与事实不符的错误信息。
+
+### 7.3 评估框架
+
+近期，大语言模型（LLM）的研究者们开始尝试将“大语言模型作为裁判”用于自动评估，其中不少人采用了如 GPT-4 这样的强大大语言模型来审视和评价他们的大语言模型应用的输出。Databricks 就曾经利用 GPT-3.5 和 GPT-4 作为评判工具，来对他们的聊天机器人应用进行评估，这表明将大语言模型用作自动评估工具是行之有效的[Leng *et al.*, 2023]。他们还认为，这种方法能够在成本和效率上对基于检索增强生成（RAG）的应用进行有效评价。在检索增强生成评估框架领域，RAGAS 和 ARES 是较新的框架。这些评估主要集中于三个关键指标：答案的准确性、答案的相关性以及上下文的相关性。
+
+另外，TruLens 这个由业界推出的开源库也提出了一个相似的评估方法。这些框架均采用大语言模型（LLM）来进行评估。鉴于 TruLens 和 RAGAS 在功能上有诸多相似之处，本节内容将重点介绍 RAGAS 和 ARES。
+
+#### RAGAS
+
+这个框架评估了检索系统挑选出关键和相关段落的能力，大语言模型（LLM）准确利用这些段落的能力，以及生成内容的整体质量。RAGAS 是一个评估框架，它基于简单的编写好的提示语，利用这些提示语来全自动评估三个质量指标：答案的准确性、答案的相关性以及上下文的相关性。在这个框架的实施和试验阶段，所有的提示语都是通过 OpenAI 的 API 使用 gpt-3.5-turbo-16k 模型来进行评估的，这一点在 Es 等人 2023 年的研究中有所提及。
+
+##### 算法原则
+
+1. 评估答案的准确性：
+   利用大语言模型（LLM）将答案拆分为若干个独立的叙述，并检查每个叙述是否与所给上下文相符。最终，通过比较得到支持的叙述数量与叙述总数的比例，计算出一个“准确性评分”。
+
+2. 评估答案的相关度：
+   利用大语言模型（LLM）构造与原始问题相关的新问题，并衡量这些新问题与原始问题之间的相似性。答案相关度评分是通过对所有新生成问题与原始问题的相似性进行平均计算得到的。
+
+3. 评估上下文的相关度：
+   利用大语言模型（LLM）筛选出与问题紧密相关的句子，并将这些句子的数量与上下文中总句子数量的比值作为上下文相关度评分。
+
+#### ARES
+ARES 的目标是自动化地从三个维度评估 RAG 系统的性能：上下文相关度、答案的忠实反映度和答案的相关度。这些评价指标与 RAGAS 中使用的指标类似。然而，RAGAS 作为一个基于简单手写提示的更新型评估框架，其对新的 RAG 评估环境的适应性有所限制，而这正是 ARES 研究的重要价值所在。另外，根据评估结果显示，ARES 在性能上明显不如 RAGAS。ARES 通过少量的手工标注数据和合成数据来减少评估成本，并运用预测驱动推理（PDR）技术来提供统计置信区间，从而增强评估的准确性。[Saad-Falcon 等人, 2023]。
+
+##### 算法原则
+
+1. 生成合成数据集：
+   ARES 首先利用语言模型从目标语料库的文档中提取信息，以此生成模拟的问题及其答案，用于构建正样本和负样本。
+2. 训练大语言模型（LLM）评估器：
+   紧接着，ARES 利用这些合成数据对轻量级语言模型进行专门的调整，使其能够对上下文相关性、答案的准确性和答案的相关度进行评价。
+3. 利用置信区间评估 RAG 系统：
+   最终，ARES 采用这些训练有素的模型来为 RAG 系统打分，并通过 PPI 方法结合人工标注的验证数据集来构建置信区间，从而可靠地评估 RAG 系统的表现。
+
+## 8. RAG 的未来展望
+
+在这一章节，我们将深入讨论 RAG 在未来发展的三个方向：**深度优化**（垂直优化）、**广度发展**（水平扩展）以及**构建 RAG 的生态系统**。深度优化指的是在现有技术层面上进行更精细的改进，广度发展则是指将 RAG 技术应用到更多的领域和场景中，而生态系统的构建则涉及到创建一个支持 RAG 技术发展的综合性平台和社区。
+
+### 8.1 RAG 的深度优化
+
+虽然过去一年中 RAG 技术已经快速进步，但在其深度发展方面仍有若干问题亟待解决。
+
+首先，处理长篇幅上下文在 RAG 应用中是一个显著的挑战。正如 [Xu 等人, 2023c] 的研究所指出的，RAG 在生成文本时受限于大语言模型（LLMs）的上下文窗口大小。如果这个窗口设置得太小，可能无法包含所有必要的信息；而设置得过大，则可能导致部分信息的丢失。目前，扩展大语言模型的上下文窗口，甚至实现无限上下文，已经成为大语言模型发展的一个重要方向。然而，一旦消除了上下文窗口的限制，如何调整 RAG 以适应这一变化，依然是一个值得深入探讨的课题。
+
+其次，提升 RAG 的稳健性也是研究的重点之一。如果在信息检索过程中出现了与查询无关的干扰信息，或者检索到的信息与已知事实不符，这都会严重影响 RAG 的输出效果。
+
+这个问题可以形象地比喻为“本想翻书寻找知识，却不小心翻到了‘有毒蘑菇’”。因此，如何提高 RAG 在面对这类问题时的应对能力，已经成为越来越多研究者关注的焦点，这一点从 [Yu *et al.*, 2023a], [Glass *et al.*, 2021], [Baek *et al.*, 2023] 等研究可以看出。
+
+第三，RAG 与微调（Fine-tuning）之间的相互增强也是研究的一个核心议题。混合模型已经逐渐成为 RAG 研究中的一种流行方法，RA-DIT [Lin *et al.*, 2023] 就是一个典型的例子。研究者们正致力于如何平衡这两种方法，使之能够同时发挥基于规则的参数化和更加灵活的非参数化的优势，这是一个亟待解决的难题。
+
+最后，RAG 在实际工程应用中的实践也是一个引人注目的研究方向。
+
+RAG 因其易于实施和能够满足企业技术需求而日益受到重视。
+
+但在实际的工程应用中，诸如如何在庞大的知识库中提升信息检索的速度和准确性，以及如何保护企业数据不被泄露，例如防止大语言模型（LLMs）无意中透露文件的来源、元数据或其它敏感信息等问题，都是目前亟需解决的关键挑战 [Alon *et al.*, 2022]。
+
+### 8.2 RAG 的广度扩展
+
+RAG 的研究领域正在快速拓展，不再局限于文本问答，其理念已经延伸到图像、代码、结构化数据、音频和视频等多种不同类型的数据上。目前，这一领域已经涌现出众多研究成果。
+
+在图像处理方面，BLIP-2 [Li *et al.*, 2023a] 的推出是一个里程碑。它利用了固定不变的图像处理器和大规模语言模型（LLMs）进行视觉和语言的联合预训练，显著降低了模型训练的成本。更令人瞩目的是，这个模型能够不依赖任何样本数据，即刻将图像内容转换成文本描述。
+
+在编程领域，通过分析代码的结构或者使用频率，系统能够自动找到与开发者当前任务相似的代码示例。这种方法在编写测试验证代码和修复程序错误方面已经证明了其高效性。在处理结构化知识时，CoK [Li *et al.*, 2023c] 方法会先从知识图谱中找到与提问相关的信息，然后将这些信息作为线索加入到问题中，这在知识图谱的问答任务中取得了不错的成绩。
+
+在音频和视频处理领域，GSS [Zhao *et al.*, 2022] 方法能够从语音库中检索并拼接音频片段，迅速将机器翻译（MT）数据转换成语音识别（ST）数据。UEOP [Chan *et al.*, 2023] 则在自动语音识别技术上取得了新进展，它采用了一种新的外部离线策略，使得声音到文本的转换更加精准高效。
+
+通过文本转语音技术产生的音频嵌入和语义文本嵌入能够利用基于 KNN 的注意力融合技术对自动语音识别（ASR）系统进行调整，这大大减少了系统适应新领域所需的时间。
+
+Vid2Seq [Yang *et al.*, 2023a] 架构通过加入特定的时间标识来提升语言模型的能力，从而能在同一个输出序列中精准地预测视频事件的分界点和相应的文本描述。
+
+### 8.3 RAG 的生态系统
+
+RAG 通过融合广泛的知识库中的相关信息，显著提升了大语言模型在处理复杂问题和生成详细回答方面的能力。众多研究已经证明，无论是在开放式的问题解答还是在核实事实的准确性方面，RAG 都有出色的表现。RAG 模型不仅在各种应用场景中提高了信息的准确度和相关性，而且让回答的内容更加多样和深入。
+
+RAG 模型已经取得了显著成就，未来的研究将着重于检验其在不同领域，如医疗、法律和教育等专业知识问答系统中的适用性和效果。与传统的模型微调方法相比，RAG 在这些专业领域的应用中可能不仅能降低训练成本，还能带来更优的性能表现。
+
+与此同时，为了提升 RAG 在具体任务中的效率和效果，完善其评估体系是至关重要的。这意味着我们需要针对不同的下游任务开发更为精确的评估方法和标准，比如考量回答与问题的相关性、答案的创新性以及其可能带来的负面影响等方面。
+
+进一步地，提升 RAG 模型的可解释性，让用户能够清晰地了解模型给出特定答案的逻辑和原因，也是我们努力的方向。
+
+在 RAG 的发展生态中，构建和完善相关的技术支撑体系发挥了关键的驱动力量。
+
+例如，随着 ChatGPT 的广泛应用，LangChain 和 LLamaIndex 这两个平台迅速走红。它们提供了丰富的 RAG 相关的应用程序接口（API），逐步成为大型模型时代的关键技术。与此同时，市场上也在不断涌现出新的技术解决方案。虽然这些新解决方案可能没有 LangChain 和 LLamaIndex 那样全面的功能，但它们更专注于发展自身的特色。举个例子，Flowise AI6 特别强调“低代码”开发，用户可以通过简单的拖拽操作，而不需要编写任何代码，就能快速构建以 RAG 为核心的 AI 应用。其他一些正在崭露头角的技术还包括 HayStack、Meltno 和 Cohere Coral。
+
+除了专为 AI 设计的框架外，传统的软件和云服务公司也在拓宽他们的服务领域。比如，由向量数据库公司 Weaviate 推出的 Verba7，它致力于打造个性化的个人助理体验。亚马逊则推出了一款智能企业搜索服务 Kendra，这项服务借鉴了 RAG 的设计理念，使用户能够通过预置的连接方式，轻松在不同的数据源中检索信息。
+
+技术栈的演进与 RAG 技术的发展相辅相成。新兴技术对现有技术体系提出了更高层次的挑战，同时，技术栈的不断完善也为 RAG 技术带来了新的发展动力。总体来看，RAG 相关工具的技术体系已经开始成型，许多面向企业的应用也逐步涌现。然而，一个真正集成所有功能的平台还有待进一步发展和完善。
+
+## 9. 总结
+
+本文深入分析了检索增强生成（Retrieval-Augmented Generation, RAG）技术，该技术通过结合外部知识库，为大语言模型（LLMs）提供更丰富的背景信息，以产生更准确的回答。RAG 技术的亮点在于，它不仅融合了大语言模型内部的知识，还引入了外部的非参数化知识，这样做有效减少了模型产生不切实际回答的情况，能够利用先进的检索技术快速找到最新信息，从而提升了回答的精确度。另外，RAG 通过引用信息源的方式，提高了模型输出结果的可信度和透明性，让用户更加信任模型的回答。
+
+RAG 技术还可以根据不同的专业领域进行个性化调整，这是通过建立与特定领域相关的文本语料库索引来实现的。RAG 的发展和特性可以概括为三种模式：初级 RAG、高级 RAG 和模块化 RAG，每一种都有其独特的模型、方法及存在的局限性。初级 RAG 主要执行的是基本的“检索-阅读”操作。而高级 RAG 则采用了更为精细的数据处理技术，对知识库索引进行了优化，并且增加了多轮或循环的检索功能，以提高检索的精确度和效率。
+
+随着研究的不断深入，RAG 开始融合包括微调在内的其他技术手段，催生了模块化 RAG 这一新范式。模块化 RAG 通过引入新的模块，不仅增强了原有 RAG 流程的功能，还赋予了它更高的灵活性和适应性。
+
+在接下来的章节里，我们深入探讨了 RAG 的三个核心组成部分。第 4 章详细介绍了 RAG 的检索器部分，包括如何处理文本数据以更准确地捕捉其深层含义，如何减少搜索查询与文档内容之间的理解偏差，以及如何优化检索器以更好地配合文本生成器的需要。第 5 章阐述了生成器是如何通过对检索到的文档进行后期处理来提高文本生成的质量，如何解决在这一过程中可能出现的信息丢失问题，以及如何调节生成器以更好地适应检索器。紧接着，第 6 章从检索的阶段、数据来源和过程三个方面，综述了目前提升检索效果的各种方法。
+
+第 7 章解释了如何评估当前的 RAG 方法，包括评估、关键指标和当前的评估框架。最后，我们提供了对 RAG 未来研究方向的展望。作为一种结合了检索和生成的方法，RAG 在未来的研究中有许多潜在的发展方向。通过不断改进技术和扩大其应用范围，RAG 的性能和实用性可以进一步增强。
+
+## 参考文献
 
 [Alon et al., 2022] Uri Alon, Frank Xu, Junxian He, Sudipta Sengupta, Dan Roth, and Graham Neubig. Neuro-symbolic language modeling with automaton-augmented retrieval. In International Conference on Machine Learning, pages 468–485. PMLR, 2022.
 
@@ -423,4 +835,116 @@ SANTA[Li *et al.*, 2023d] 研究提出了两种新的预训练方法，旨在让
 
 [Feng et al., 2023a] Zhangyin Feng, Xiaocheng Feng, Dezhi Zhao, Maojin Yang, and Bing Qin. Retrieval-generation synergy augmented large language models. arXiv preprint arXiv:2310.05149, 2023.
 
-[Feng et al., 2023b] Zhangyin Feng, Weitao Ma, Weijiang Yu, Lei Huang, Haotian Wang, Qianglong Chen, Weihua Peng, Xiaocheng Feng, Bing Qin, et al. Trends in
+[Feng et al., 2023b] Zhangyin Feng, Weitao Ma, Weijiang Yu, Lei Huang, Haotian Wang, Qianglong Chen, Weihua Peng, Xiaocheng Feng, Bing Qin, et al. Trends in integration of knowledge and large language models: A survey and taxonomy of methods, benchmarks, and applications. arXiv preprint arXiv:2311.05876, 2023.
+
+[Gao et al., 2022] Luyu Gao, Xueguang Ma, Jimmy Lin, and Jamie Callan. Precise zero-shot dense retrieval without relevance labels. arXiv preprint arXiv:2212.10496, 2022.
+
+[Glass et al., 2021] Michael Glass, Gaetano Rossiello, Md Faisal Mahbub Chowdhury, and Alfio Gliozzo. Robust retrieval augmented generation for zero-shot slot filling. arXiv preprint arXiv:2108.13934, 2021.
+
+[Google, 2023] Google. Gemini: A family of highly capable multimodal models. https://goo.gle/GeminiPaper, 2023.
+
+[Hendrycks et al., 2020] Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. Measuring massive multitask language understanding. arXiv preprint arXiv:2009.03300, 2020.
+
+[Izacard et al., 2022] Gautier Izacard, Patrick Lewis, Maria Lomeli, Lucas Hosseini, Fabio Petroni, Timo Schick, Jane Dwivedi-Yu, Armand Joulin, Sebastian Riedel, and Edouard Grave. Few-shot learning with retrieval augmented language models. arXiv preprint arXiv:2208.03299, 2022.
+
+[Jarvis and Allard, 2023] Colin Jarvis and John Allard. A survey of techniques for maximizing llm performance. https://community.openai.com/t/openai-dev-day-2023-breakout-sessions/505213#a-survey-of-techniques-for-maximizing-llm-performance-2, 2023.
+
+[Jiang et al., 2023a] Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang, and Lili Qiu. Llmlingua: Compressing prompts for accelerated inference of large language models. arXiv preprint arXiv:2310.05736, 2023.
+
+[Jiang et al., 2023b] Zhengbao Jiang, Frank F Xu, Luyu Gao, Zhiqing Sun, Qian Liu, Jane Dwivedi-Yu, Yiming Yang, Jamie Callan, and Graham Neubig. Active retrieval augmented generation. arXiv preprint arXiv:2305.06983, 2023.
+
+[Kandpal et al., 2023] Nikhil Kandpal, Haikang Deng, Adam Roberts, Eric Wallace, and Colin Raffel. Large language models struggle to learn long-tail knowledge. In International Conference on Machine Learning, pages 15696–15707. PMLR, 2023.
+
+[Kang et al., 2023] Minki Kang, Jin Myung Kwak, Jinheon Baek, and Sung Ju Hwang. Knowledge graph-augmented language models for knowledge-grounded dialogue generation. arXiv preprint arXiv:2305.18846, 2023.
+
+[Karpukhin et al., 2020] Vladimir Karpukhin, Barlas Oğuz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and Wen-tau Yih. Dense passage retrieval for open-domain question answering. arXiv preprint arXiv:2004.04906, 2020.
+
+[Khandelwal et al., 2019] Urvashi Khandelwal, Omer Levy, Dan Jurafsky, Luke Zettlemoyer, and Mike Lewis. Generalization through memorization: Nearest neighbor language models. arXiv preprint arXiv:1911.00172, 2019.
+
+[Khattab and Zaharia, 2020] Omar Khattab and Matei Zaharia. Colbert: Efficient and effective passage search via contextualized late interaction over bert. In Proceedings of the 43rd International ACM SIGIR conference on research and development in Information Retrieval, pages 39–48, 2020.
+
+[Khattab et al., 2022] Omar Khattab, Keshav Santhanam, Xiang Lisa Li, David Hall, Percy Liang, Christopher Potts, and Matei Zaharia. Demonstrate-search-predict: Composing retrieval and language models for knowledge-intensive nlp. arXiv preprint arXiv:2212.14024, 2022.
+
+[Kwiatkowski et al., 2019] Tom Kwiatkowski, Jennimaria Palomaki, Olivia Redfield, Michael Collins, Ankur Parikh, Chris Alberti, Danielle Epstein, Illia Polosukhin, Jacob Devlin, Kenton Lee, et al. Natural questions: a benchmark for question answering research. Transactions of the Association for Computational Linguistics, 7:453–466, 2019.
+
+[Lee et al., 2020] Jinhyuk Lee, Mujeen Sung, Jaewoo Kang, and Danqi Chen. Learning dense representations of phrases at scale. arXiv preprint arXiv:2012.12624, 2020.
+
+[Leng et al., 2023] Quinn Leng, Kasey Uhlenhuth, and Alkis Polyzotis. Best practices for llm evaluation of rag applications. https://www.databricks.com/blog/LLM-auto-eval-best-practices-RAG, 2023.
+
+[Lewis et al., 2020] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, et al. Retrieval-augmented generation for knowledge-intensive nlp tasks. Advances in Neural Information Processing Systems, 33:9459–9474, 2020.
+
+[Li et al., 2023a] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pretraining with frozen image encoders and large language models. arXiv preprint arXiv:2301.12597, 2023.
+
+[Li et al., 2023b] Xiaoqian Li, Ercong Nie, and Sheng Liang. From classification to generation: Insights into crosslingual retrieval augmented icl. arXiv preprint arXiv:2311.06595, 2023.
+
+[Li et al., 2023c] Xingxuan Li, Ruochen Zhao, Yew Ken Chia, Bosheng Ding, Lidong Bing, Shafiq Joty, and Soujanya Poria. Chain of knowledge: A framework for grounding large language models with structured knowledge bases. arXiv preprint arXiv:2305.13269, 2023.
+
+[Li et al., 2023d] Xinze Li, Zhenghao Liu, Chenyan Xiong, Shi Yu, Yu Gu, Zhiyuan Liu, and Ge Yu. Structure-aware language model pretraining improves dense retrieval on structured data. arXiv preprint arXiv:2305.19912, 2023.
+
+[Lin et al., 2023] Xi Victoria Lin, Xilun Chen, Mingda Chen, Weijia Shi, Maria Lomeli, Rich James, Pedro Rodriguez, Jacob Kahn, Gergely Szilvasy, Mike Lewis, et al. Ra-dit: Retrieval-augmented dual instruction tuning. arXiv preprint arXiv:2310.01352, 2023.
+
+[Litman et al., 2020] Ron Litman, Oron Anschel, Shahar Tsiper, Roee Litman, Shai Mazor, and R Manmatha. Scatter: selective context attentional scene text recognizer. In proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages 11962–11972, 2020.
+
+[Liu et al., 2023] Nelson F Liu, Kevin Lin, John Hewitt, Ashwin Paranjape, Michele Bevilacqua, Fabio Petroni, and Percy Liang. Lost in the middle: How language models use long contexts. arXiv preprint arXiv:2307.03172, 2023.
+
+[Liu, 2023] Jerry Liu. Building production-ready rag applications. https://www.ai.engineer/summit/schedule/building-production-ready-rag-applications, 2023.
+
+[Luo et al., 2023] Ziyang Luo, Can Xu, Pu Zhao, Xiubo Geng, Chongyang Tao, Jing Ma, Qingwei Lin, and Daxin Jiang. Augmented large language models with parametric knowledge guiding. arXiv preprint arXiv:2305.04757, 2023.
+
+[Ma et al., 2023a] Xinbei Ma, Yeyun Gong, Pengcheng He, Hai Zhao, and Nan Duan. Query rewriting for retrieval-augmented large language models. arXiv preprint arXiv:2305.14283, 2023.
+
+[Ma et al., 2023b] Yubo Ma, Yixin Cao, YongChing Hong,and Aixin Sun. Large language model is not a good few-shot information extractor, but a good reranker for hard samples! arXiv, abs/2303.08559, 2023.
+
+[Modarressi et al., 2023] Ali Modarressi, Ayyoob Imani, Mohsen Fayyaz, and Hinrich Schütze. Ret-llm: Towards a general read-write memory for large language models. arXiv preprint arXiv:2305.14322, 2023.
+
+[Nakano et al., 2021] Reiichiro Nakano, Jacob Hilton, Suchir Balaji, Jeff Wu, Long Ouyang, Christina Kim, Christopher Hesse, Shantanu Jain, Vineet Kosaraju, William Saunders, et al. Webgpt: Browser-assisted question-answering with human feedback. arXiv preprint arXiv:2112.09332, 2021. 
+
+[Nashid et al., 2023] Noor Nashid, Mifta Sintaha, and Ali Mesbah. Retrieval-based prompt selection for code-related few-shot learning. In 2023 IEEE/ACM 45th International Conference on Software Engineering (ICSE), pages 2450–2462, 2023.
+
+[OpenAI, 2023] OpenAI. Gpt-4 technical report. https://cdn.openai.com/papers/gpt-4.pdf, 2023.
+
+[Petroni et al., 2019] Fabio Petroni, Tim Rocktäschel, Patrick Lewis, Anton Bakhtin, Yuxiang Wu, Alexander H Miller, and Sebastian Riedel. Language models as knowledge bases? arXiv preprint arXiv:1909.01066, 2019.
+
+[Raffel et al., 2020] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. The Journal of Machine Learning Research, 21(1):5485–5551, 2020.
+
+[Ranzato et al., 2015] Marc'Aurelio Ranzato, Sumit Chopra, Michael Auli, and Wojciech Zaremba. Sequence level training with recurrent neural networks. arXiv preprint arXiv:1511.06732, 2015. 
+
+[Reddy et al., 2019] Siva Reddy, Danqi Chen, and Christopher D Manning. Coqa: A conversational question answering challenge. Transactions of the Association for Computational Linguistics, 7:249–266, 2019.
+
+[Robertson et al., 2009] Stephen Robertson, Hugo Zaragoza, et al. The probabilistic relevance framework: Bm25 and beyond. Foundations and Trends® in Information Retrieval, 3(4):333–389, 2009.
+
+[Saad-Falcon et al., 2023] Jon Saad-Falcon, Omar Khattab, Christopher Potts, and Matei Zaharia. Ares: An automated evaluation framework for retrieval-augmented generation systems. arXiv preprint arXiv:2311.09476, 2023. 
+
+[Schick et al., 2023] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom. Toolformer: Language models can teach themselves to use tools. arXiv preprint arXiv:2302.04761, 2023.
+
+[Sciavolino et al., 2021] Christopher Sciavolino, Zexuan Zhong, Jinhyuk Lee, and Danqi Chen. Simple entity-centric questions challenge dense retrievers. arXiv preprint arXiv:2109.08535, 2021. 
+
+[Shao et al., 2023] Zhihong Shao, Yeyun Gong, Yelong Shen, Minlie Huang, Nan Duan, and Weizhu Chen. Enhancing retrieval-augmented large language models with iterative retrieval-generation synergy. arXiv preprint arXiv:2305.15294, 2023.
+
+[Shi et al., 2023] Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon Seo, Rich James, Mike Lewis, Luke Zettlemoyer, and Wen-tau Yih. Replug: Retrieval-augmented black-box language models. arXiv preprint arXiv:2301.12652, 2023. 
+
+[Shuster et al., 2021] Kurt Shuster, Spencer Poff, Moya Chen, Douwe Kiela, and Jason Weston. Retrieval augmentation reduces hallucination in conversation. arXiv preprint arXiv:2104.07567, 2021.
+
+[Srivastava et al., 2022] Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao, Abu Awal Md Shoeb, Abubakar Abid, Adam Fisch, Adam R Brown, Adam Santoro, Aditya Gupta, Adrià Garriga-Alonso, et al. Beyond the imitation game: Quantifying and extrapolating the capabilities of language models. arXiv preprint arXiv:2206.04615, 2022.
+
+[Sun et al., 2022] Zhiqing Sun, Xuezhi Wang, Yi Tay, Yiming Yang, and Denny Zhou. Recitation-augmented language models. arXiv preprint arXiv:2210.01296, 2022.
+
+[Touvron et al., 2023] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al. Llama 2: Open foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288, 2023.
+
+[Trivedi et al., 2022] Harsh Trivedi, Niranjan Balasubramanian, Tushar Khot, and Ashish Sabharwal. Interleaving retrieval with chain-of-thought reasoning for knowledge-intensive multi-step questions. arXiv preprint arXiv:2212.10509, 2022.
+
+[Vaswani et al., 2017] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. Advances in neural information processing systems, 30, 2017.
+
+[Vaze et al., 2021] Sagar Vaze, Kai Han, Andrea Vedaldi, and Andrew Zisserman. Open-set recognition: A good closed-set classifier is all you need? arXiv preprint arXiv:2110.06207, 2021. 
+
+[VoyageAI, 2023] VoyageAI. Voyage's embedding models. https://docs.voyageai.com/embeddings/, 2023.
+
+[Wang et al., 2019] Alex Wang, Yada Pruksachatkun, Nikita Nangia, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel Bowman. Superglue: A stickier benchmark for general-purpose language understanding systems. Advances in neural information processing systems, 32, 2019.
+
+[Wang et al., 2022a] Shuohang Wang, Yichong Xu, Yuwei Fang, Yang Liu, Siqi Sun, Ruochen Xu, Chenguang Zhu, and Michael Zeng. Training data is more valuable than you think: A simple and effective method by retrieving from training data. arXiv preprint arXiv:2203.08773, 2022. 
+
+[Wang et al., 2022b] Shuohang Wang, Yichong Xu, Yuwei Fang, Yang Liu, Siqi Sun, Ruochen Xu, Chenguang Zhu, and Michael Zeng. Training data is more valuable than you think: A simple and effective method by retrieving from training data. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 3170–3179, Dublin, Ireland, May 2022. Association for Computational Linguistics.
+
+[Wang et al., 2023a] Boxin Wang, Wei Ping, Peng Xu, Lawrence McAfee, Zihan Liu, Mohammad Shoeybi, Yi Dong, Oleksii Kuchaiev, Bo Li, Chaowei Xiao, et al. Shall we pretrain autoregressive language models with retrieval? a comprehensive study. arXiv
+
+

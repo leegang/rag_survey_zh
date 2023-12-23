@@ -66,8 +66,11 @@ Definition The meaning of RAG has expanded in tandem with technological developm
 1. Utilizing encoding models to retrieve relevant documents based on questions, such as BM25, DPR, Col-
    BERT, and similar approaches[Robertson *et al.*, 2009, Karpukhin *et al.*, 2020, Khattab and Zaharia, 2020].
 2. Generation Phase: Using the retrieved context as a condition, the system generates text.
-   2.2
-   RAG vs Fine-tuning In the optimization of Large Language Models (LLMs), in addition to RAG, another important optimization technique is fine-tuning.
+
+
+2.2 RAG vs Fine-tuning 
+
+In the optimization of Large Language Models (LLMs), in addition to RAG, another important optimization technique is fine-tuning.
 
 RAG is akin to providing a textbook to the model, allowing it to retrieve information based on specific queries. This approach is suitable for scenarios where the model needs to answer specific inquiries or address particular information retrieval tasks. However, RAG is not suitable for teaching the model to understand broad domains or learn new languages, formats, or styles.
 
@@ -97,8 +100,11 @@ compared to other methods for optimizing large language models[Shuster *et al.*,
   without the need to update all parameters and create training sets, making it more economically efficient.
 - Lastly, results produced by RAG are more trustworthy.
   RAG selects deterministic results from the latest data, while fine-tuned models may exhibit hallucinations and inaccuracies when dealing with dynamic data, lacking transparency and credibility.
+
+
   3
-  RAG Framework The research paradigm of RAG is constantly evolving. This chapter primarily introduces the evolution of the RAG research paradigm. We categorize it into three types: Naive RAG, Advanced RAG, and Modular RAG. Although the early RAG was cost-effective and performed better than the native LLM, it still faced many shortcomings. The emergence
+  RAG Framework 
+  The research paradigm of RAG is constantly evolving. This chapter primarily introduces the evolution of the RAG research paradigm. We categorize it into three types: Naive RAG, Advanced RAG, and Modular RAG. Although the early RAG was cost-effective and performed better than the native LLM, it still faced many shortcomings. The emergence
 
 Feature Comparison
 RAG
@@ -163,9 +169,9 @@ Indexing The pipeline for obtaining data from the source and building an index f
 | Ethical and privacy concerns may arise due     |                                    |                            |
 | to sensitive content in the                    | training data                      | .                          |
 
-1.Data Indexing:This involves cleaning and extracting the original data, converting different file formats such as PDF, HTML, Word, Markdown, etc., into plain text.
+1. Data Indexing:This involves cleaning and extracting the original data, converting different file formats such as PDF, HTML, Word, Markdown, etc., into plain text.
 
-2.Chunking: This involves dividing the loaded text into smaller chunks. This is necessary because language models typically have a limit on the amount of context they can handle, so it is necessary to create as small text chunks as possible.
+2. Chunking: This involves dividing the loaded text into smaller chunks. This is necessary because language models typically have a limit on the amount of context they can handle, so it is necessary to create as small text chunks as possible.
 
 3. Embedding and Creating Index: This is the process of encoding text into vectors through a language model. The resulting vectors will be used in the subsequent retrieval process to calculate the similarity between the vector and the problem vector.The embedding models require a high inference speed. Since it is necessary to encode a large amount of corpus and encode the problem in real time when the user asks a question, the parameter size of the model should not be too large.After generating the embedding, the next step is to create an index, storing the original corpus chunks and embedding in the form of key-value pairs for quick and frequent searches in the future.
 
@@ -241,7 +247,8 @@ Recomp [Xu *et al.*, 2023a]addresses this by training compressors at different g
 Long Context
 [Xu *et al.*, 2023b], in dealing with extensive contexts, decomposes and compresses, while "Walking in the Memory Maze" [Chen *et al.*, 2023a]designs a hierarchical summarization tree to enhance LLM's key information perception.
 
-RAG Pipeline Optimization The optimization of the retrieval process aims to enhance the efficiency and information quality of RAG systems, Current research primarily focuses on intelligently combining various search technologies, optimizing retrieval steps, introducing the concept of cognitive backtracking, flexibly applying diverse query strategies, and leveraging embedding similarity. These efforts collectively strive to achieve a balance between efficiency and the richness of contextual information in RAG retrieval.
+RAG Pipeline Optimization 
+The optimization of the retrieval process aims to enhance the efficiency and information quality of RAG systems, Current research primarily focuses on intelligently combining various search technologies, optimizing retrieval steps, introducing the concept of cognitive backtracking, flexibly applying diverse query strategies, and leveraging embedding similarity. These efforts collectively strive to achieve a balance between efficiency and the richness of contextual information in RAG retrieval.
 
 - **Exploring Hybrid Search:** By intelligently blending
   various techniques such as keyword-based search, semantic search, and vector search, the RAG system can leverage the strengths of each method. This approach enables the RAG system to adapt to different query types and information needs, ensuring consistent retrieval of the most relevant and context-rich information. Hybrid search serves as a robust complement to retrieval strategies, enhancing the overall performance of the RAG pipeline.
@@ -252,7 +259,11 @@ RAG Pipeline Optimization The optimization of the retrieval process aims to enha
   different scenarios, including using query engines provided by frameworks like LlamaIndex, employing tree queries, utilizing vector queries, or employing the most basic sequential querying of chunks.
 - **HyDE:** This approach is grounded on the assumption
   that the generated answers may be closer in the embedding space than a direct query. Utilizing LLM, HyDE generates a hypothetical document (answer) in response to a query, embeds the document, and employs this embedding to retrieve real documents similar to the hypothetical one. In contrast to seeking embedding similarity based on the query, this method emphasizes the embedding similarity from answer to answer. However, it may not consistently yield favorable results, particularly in instances where the language model is unfamiliar with the discussed topic, potentially leading to an increased generation of error-prone instances.
+
+
   Modular RAG
+
+
   The modular RAG structure breaks away from the traditional Naive RAG framework of indexing, retrieval, and generation, offering greater diversity and flexibility in the overall process. On one hand, it integrates various methods to expand functional modules, such as incorporating a search module in similarity retrieval and applying a fine-tuning approach in the retriever[Lin *et al.*, 2023]. Additionally, specific problems have led to the emergence of restructured RAG modules [Yu *et al.*, 2022] and iterative approaches like
   [Shao *et al.*, 2023]. The modular RAG paradigm is becoming the mainstream in the RAG domain, allowing for either a serialized pipeline or an end-to-end training approach across multiple modules.The comparison between three RAG paradigms is illustrated in Fig 3.
 
@@ -267,12 +278,8 @@ New Modules
 - **Extra Generation Module:** In retrieved content, redundancy and noise are common issues. Instead of directly retrieving from a data source, the Extra Generation Module leverages LLM to generate the required
   context[Yu *et al.*, 2022]. Content generated by LLM is
   more likely to contain relevant information compared to direct retrieval.
-- Task
-  Adaptable
-  Module:
-  Focused
-  on
-  transforming
+- Task Adaptable Module:
+  Focused on transforming
   RAG
   to
   adapt
@@ -314,7 +321,8 @@ New Modules
 - **Validation Module:** In real-world scenarios, it is not
   always guaranteed that the retrieved information is reliable. Retrieving irrelevant data may lead to the occurrence of illusions in LLM. Therefore, an additional validation module can be introduced after retrieving documents to assess the relevance between the retrieved documents and the query. This enhances the robustness of RAG[Yu *et al.*, 2023a].
 
-New Pattern The organizational approach of Modular RAG is flexible, allowing for the substitution or reconfiguration of modules within the RAG process based on specific problem contexts. For Naive RAG, which consists of the two modules of retrieval and generation ( referred as read or sythesis in some literature), this framework offers adaptability and abundance. Present research primarily explores two organizational paradigms, involving the addition or replacement of modules, as well as the adjustment of the organizational flow between modules.
+New Pattern 
+The organizational approach of Modular RAG is flexible, allowing for the substitution or reconfiguration of modules within the RAG process based on specific problem contexts. For Naive RAG, which consists of the two modules of retrieval and generation ( referred as read or sythesis in some literature), this framework offers adaptability and abundance. Present research primarily explores two organizational paradigms, involving the addition or replacement of modules, as well as the adjustment of the organizational flow between modules.
 
 - Adding or Replacing Modules
   The strategy of adding or replacing modules entails maintaining the structure of Retrieval-Read while introducing additional modules to enhance specific functionalities.
@@ -340,7 +348,8 @@ In RAG, semantic space is the multidimensional space where query and Document ar
 
 When we perform retrieval, it is measured within the semantic space. If the semantic expression is not accurate, then its effect on RAG is fatal, this section will introduce two methods to help us build a accurate semantic space.
 
-Chunk optimization When processing external documents, the first step is chunking to obtain fine-grained features. Then the chunks are Embedded.
+Chunk optimization
+When processing external documents, the first step is chunking to obtain fine-grained features. Then the chunks are Embedded.
 
 However, Embedding too large or too small text chunks may not achieve good results. Therefore, finding the optimal chunk size for the documents in the corpus is crucial to ensure the accuracy and relevance of the search results.
 
@@ -350,7 +359,9 @@ Current research in RAG employs diverse block optimization methods to improve re
 
 The Small2big technique utilizes small text blocks during the search process and provides larger affiliated text blocks to the language model for processing. The Abstract embedding technique performs Top K retrieval on document abstracts, offering full document context. The Metadata Filtering technique leverages document metadata for filtering. The Graph Indexing technique converts entities and relationships into nodes and connections, significantly enhancing relevance in the context of multi-hop issues. The amalgamation of these methods has resulted in improved retrieval outcomes and enhanced performance for RAG.
 
-Fine-tuning Embedding Models After getting the proper size of Chunks, we need to Embedding the chunks and query in the semantic space by an Embedding model, so it is crucial whether Embedding can represent the corpus effectively. Nowadays, excellent Embedding models have appeared, such as [UAE[AngIE, 2023], Voyage[VoyageAI, 2023], BGE[BAAI, 2023], etc.], they have been pre-trained on large-scale corpus, but they may not accurately represent domain-specific corpus information when applied to specific domains. Furthermore, task-specific fine-tuning of Embedding models is critical to ensure that the model understands the user query in relation to the content relevance, whereas an un-fine-tuned model may not be able to fulfill the needs of a specific task. Thus, fine-tuning an Embedding model is essential for downstream applications.
+Fine-tuning Embedding Models 
+
+After getting the proper size of Chunks, we need to Embedding the chunks and query in the semantic space by an Embedding model, so it is crucial whether Embedding can represent the corpus effectively. Nowadays, excellent Embedding models have appeared, such as [UAE[AngIE, 2023], Voyage[VoyageAI, 2023], BGE[BAAI, 2023], etc.], they have been pre-trained on large-scale corpus, but they may not accurately represent domain-specific corpus information when applied to specific domains. Furthermore, task-specific fine-tuning of Embedding models is critical to ensure that the model understands the user query in relation to the content relevance, whereas an un-fine-tuned model may not be able to fulfill the needs of a specific task. Thus, fine-tuning an Embedding model is essential for downstream applications.
 
 There are two basic paradigms in Embedding finetuning methods Domain Knowledge Fine-tuning In order for an Embedding model to correctly understand domain-specific information, we need to construct domain-specific datasets to finetune the Embedding model.
 
@@ -358,7 +369,8 @@ However fine-tuning an Embedding model is different from an ordinary language mo
 
 In the construction of datasets, fine-tuning models, and evaluation, numerous challenges may arise in each of these three components. In the LlamaIndex [Liu, 2023], a series of key classes and functions have been introduced specifically for the fine-tuning process of embedding models, significantly streamlining this procedure. By preparing a corpus of domain knowledge and utilizing the methods it provides, we can easily obtain the specialized embedding model tailored to our desired domain.
 
-Fine-tuning of downstream tasks It is equally important to adapt Embedding models to downstream tasks. When using RAG in downstream tasks, some works have fine-tuned Embedding models by using the capabilities of LLMs.PROMPTAGATOR[Dai *et al.*, 2022] utilizes the Large Language Model (LLM) as a few-shot query generator and creates task-specific retrievers based on the generated data, and alleviates the problem of supervised finetuning, which is difficult in some domains due to data scarcity.LLM-Embedder[Zhang *et al.*, 2023a]uses the Large Language Model to output reward values for data from multiple downstream tasks, fine-tuning the retriever with two different supervised signals via hard labeling of the dataset and the soft reward derived from LLM.
+Fine-tuning of downstream tasks 
+It is equally important to adapt Embedding models to downstream tasks. When using RAG in downstream tasks, some works have fine-tuned Embedding models by using the capabilities of LLMs.PROMPTAGATOR[Dai *et al.*, 2022] utilizes the Large Language Model (LLM) as a few-shot query generator and creates task-specific retrievers based on the generated data, and alleviates the problem of supervised finetuning, which is difficult in some domains due to data scarcity.LLM-Embedder[Zhang *et al.*, 2023a]uses the Large Language Model to output reward values for data from multiple downstream tasks, fine-tuning the retriever with two different supervised signals via hard labeling of the dataset and the soft reward derived from LLM.
 
 This somewhat improves the semantic representation through both domain knowledge injection and downstream task fine-tuning. However, the retrievers trained by this approach are not intuitively helpful for large language models, so some work has been done to supervise the fine-tuning of Embedding models directly through feedback signals from the LLM. (This section will be presented in 4.4)
 
@@ -373,7 +385,15 @@ RETGEN[Shao *et al.*, 2023], the inherent capabilities of large language models 
 
 In HyDE[Gao *et al.*, 2022], query vectors are established through the use of text indicators, using these indicators to generate a 'hypothetical' document that is relevant, yet may not truly exist, it only needs to capture the relevant pattern.
 
-RRR[Ma *et al.*, 2023a]introduced a new framework that inverts the order of retrieval and reading, focusing on query rewriting. This method generates a query using a large language model, then uses a web search engine to retrieve context, and finally uses a small language model as a training rewriter to serve the frozen large language model. The STEP-BACKPROMPTING[Zheng *et al.*, 2023] method can make large language models carry out abstract reasoning, extract high-level concepts and principles, and conduct retrieval based on this. Lastly, the method in Multi Query Retrieval involves using large language models to generate multiple search queries, these queries can be executed in parallel, and the retrieval results are input together, which is very useful for single problems that rely on multiple sub-problems Embedding Transformation If there is a coarse-grained method like rewriting queries, there should also be a finer-grained implementation specific for embedding operations. In LlamaIndex[Liu, 2023], it is possible to connect an adapter after the query encoder, and fine-tune the adapter to optimize the representation of query embeddings, mapping it to a latent space that is better suited for specific tasks.When the data structure of a query and an external document are different, such as an unstructured query and a structured external document, it is very important to enable the query to align with the document.SANTA[Li *et al.*, 2023d] proposes two pretraining methods to make the retriever aware of structured information 1) Using the natural alignment relationship between structured data and unstructured data for contrastive learning for structured-aware pre-training. 2) Masked Entity Prediction, which designs an entity-oriented mask strategy and asks language models to fill in the masked entities.
+RRR[Ma *et al.*, 2023a]introduced a new framework that inverts the order of retrieval and reading, focusing on query rewriting. This method generates a query using a large language model, then uses a web search engine to retrieve context, and finally uses a small language model as a training rewriter to serve the frozen large language model. 
+
+The STEP-BACKPROMPTING[Zheng *et al.*, 2023] method can make large language models carry out abstract reasoning, extract high-level concepts and principles, and conduct retrieval based on this. Lastly, the method in Multi Query Retrieval involves using large language models to generate multiple search queries, these queries can be executed in parallel, and the retrieval results are input together, which is very useful for single problems that rely on multiple sub-problems 
+
+Embedding Transformation 
+
+If there is a coarse-grained method like rewriting queries, there should also be a finer-grained implementation specific for embedding operations. In LlamaIndex[Liu, 2023], it is possible to connect an adapter after the query encoder, and fine-tune the adapter to optimize the representation of query embeddings, mapping it to a latent space that is better suited for specific tasks.When the data structure of a query and an external document are different, such as an unstructured query and a structured external document, it is very important to enable the query to align with the document.
+
+SANTA[Li *et al.*, 2023d] proposes two pretraining methods to make the retriever aware of structured information 1) Using the natural alignment relationship between structured data and unstructured data for contrastive learning for structured-aware pre-training. 2) Masked Entity Prediction, which designs an entity-oriented mask strategy and asks language models to fill in the masked entities.
 
 ## 4.3 How To Aligning Retriever'S Output And Llm'S Preference
 
@@ -400,9 +420,13 @@ UPRISE[Cheng *et al.*, 2023a] also employs frozen large language models to fine-
 
 But both the language model and the retriever take Prompt-Input Pairs as inputs, then uses the scores given by the large language model to supervise the training of the retriever, equivalent to using the large language model to label the dataset.
 
-Atlas[Izacard *et al.*, 2022] proposes four methods of finetuning supervised embedding models, among them, Attention Distillation distills using the cross-attention scores that the language model generates during the output. EMDR2 employs the Expectation-Maximization algorithm to train with the retrieved documents as latent variables. Perplexity Distillation directly trains using the perplexity of the modelgenerated tokens as an indicator.LOOP introduces a new loss function based on the effect of document deletion on LM prediction, providing an effective training strategy for better adapting the model to specific tasks.
+Atlas[Izacard *et al.*, 2022] proposes four methods of finetuning supervised embedding models, among them, Attention Distillation distills using the cross-attention scores that the language model generates during the output. EMDR2 employs the Expectation-Maximization algorithm to train with the retrieved documents as latent variables. 
 
-Plug in an adapter However, fine-tuning an embedding model can be challenging due to factors such as utilizing an API to implement embedding functionality or insufficient local computational resources.
+Perplexity Distillation directly trains using the perplexity of the modelgenerated tokens as an indicator.LOOP introduces a new loss function based on the effect of document deletion on LM prediction, providing an effective training strategy for better adapting the model to specific tasks.
+
+Plug in an adapter 
+
+However, fine-tuning an embedding model can be challenging due to factors such as utilizing an API to implement embedding functionality or insufficient local computational resources.
 
 Therefore, some works choose to externally attach an adapter for alignment.PRCA[Yang *et al.*, 2023b] trains the Adapter through the Contextual Extraction Stage and the Reward- Driven Stage, and optimizes the output of the retriever based on a token-based autoregressive strategy.
 
